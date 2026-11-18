@@ -1,0 +1,32 @@
+// Copyright 2026 Alex Degner (alex@ergofox.me)
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Shared SCSS variables. Injected into every .scss file via Vite's
+// `css.preprocessorOptions.scss.additionalData` (see vite.config.ts).
+
+// Brand palette. Also used to configure Bulma in `styles/main.scss`.
+$brand-primary: #396cd8;
+$brand-link: #646cff;
+
+// Typography
+$font-family-base: Inter, Avenir, Helvetica, Arial, sans-serif;
+
+// Logo accents
+$color-logo-vite: #747bff;
+$color-logo-react: #61dafb;
+$color-logo-tauri: #24c8db;
+
+// Shape
+$radius-base: 8px;
+$radius-large: 12px;

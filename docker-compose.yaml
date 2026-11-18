@@ -1,0 +1,83 @@
+# Copyright 2026 Alex Degner (alex@ergofox.me)
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+services:
+  frontend:
+    working_dir: /srv/
+    restart: "no"
+    build:
+      context: ./
+      dockerfile: docker/frontend/Dockerfile
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+        USER: ${USER:-developer}
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ./videocutter/:/srv:cached
+    ports:
+      - "1420:1420"
+    command: sh -c "npm run dev"
+    network_mode: host
+
+  videocutter:
+    restart: "no"
+    build:
+      context: ./
+      dockerfile: docker/videocutter/Dockerfile
+    environment:
+      - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
+      - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+      - RUST_BACKTRACE=full
+      - DISPLAY=${DISPLAY}
+      - WEBKIT_DISABLE_COMPOSITING_MODE=1
+      - WEBKIT_DEBUG=1
+      - CI=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      # linuxdeploy (AppImage bundler) is itself an AppImage and cannot mount
+      # squashfs inside the container without FUSE.
+      - APPIMAGE_EXTRACT_AND_RUN=1
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    volumes:
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+      - ${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ./videocutter:/srv:cached
+      - ~/.local/share/:/root/.local/share/
+      # Persistent cargo registry: gen/android references crates by absolute
+      # registry paths, which must survive across `docker compose run` sessions.
+      - cargo-registry:/root/.cargo/registry
+    devices:
+      - /dev/fuse:/dev/fuse
+
+    working_dir: /srv
+    command: cargo tauri dev
+    network_mode: host
+    stdin_open: true
+    tty: true
+    depends_on:
+      - frontend
+
+# Persisted cargo registry shared by exergame containers
+volumes:
+  cargo-registry:
