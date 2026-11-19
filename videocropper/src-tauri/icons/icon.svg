@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Copyright 2026 Alex Degner (alex@ergofox.me)
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+
+  Video Cropper application icon: a video frame with trim handles and
+  crop marks, flat and minimalistic, in the app's Breeze palette.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Video frame outline (accent blue) -->
+  <rect x="212" y="292" width="600" height="440" rx="56"
+        fill="none" stroke="#3daee9" stroke-width="36"/>
+
+  <!-- Viewfinder-style crop marks inside the frame corners -->
+  <g stroke="#232629" stroke-width="20" stroke-linecap="round" fill="none">
+    <!-- top-left -->
+    <path d="M 276 356 H 348"/>
+    <path d="M 276 356 V 428"/>
+    <!-- top-right -->
+    <path d="M 748 356 H 676"/>
+    <path d="M 748 356 V 428"/>
+    <!-- bottom-left -->
+    <path d="M 276 668 H 348"/>
+    <path d="M 276 668 V 596"/>
+    <!-- bottom-right -->
+    <path d="M 748 668 H 676"/>
+    <path d="M 748 668 V 596"/>
+  </g>
+
+  <!-- Trim handles gripping the frame edges (accent green) -->
+  <rect x="184" y="384" width="56" height="256" rx="28" fill="#27ae60"/>
+  <rect x="784" y="384" width="56" height="256" rx="28" fill="#27ae60"/>
+</svg>
