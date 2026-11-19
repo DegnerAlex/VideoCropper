@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component } from "react";
+import { Component } from "preact/compat";
 import { TimelineTrack } from "./TimelineTrack";
 import { StatusRow } from "./StatusRow";
 import { SessionToggles } from "./SessionToggles";

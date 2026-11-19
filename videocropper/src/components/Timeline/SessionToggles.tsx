@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component } from "react";
+import { Component } from "preact/compat";
 import { Button } from "react-bulma-components";
 import { FiDownload, FiFolder, FiTrash2 } from "react-icons/fi";
 import { Switch } from "../Switch";

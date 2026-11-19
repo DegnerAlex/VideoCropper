@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import React from "react";
-import ReactDOM from "react-dom/client";
+import React from "preact/compat";
+import { createRoot } from "preact/compat/client";
 import { invoke } from "@tauri-apps/api/core";
 // App.scss also compiles Bulma (configured with the project palette).
 import App from "./App";
@@ -29,7 +29,7 @@ requestAnimationFrame(() => {
     });
 });
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
         <App/>
     </React.StrictMode>,

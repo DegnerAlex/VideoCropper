@@ -125,15 +125,27 @@ Or build the app yourself (see *Production builds*).
 
 ## Libraries
 
-- [Tauri 2](https://tauri.app) — desktop shell, plugins: dialog, fs, opener,
+Frontend:
+
+- [Preact](https://preactjs.com) + `preact/compat` — class-based UI
+  components (React-compatible API, ~4 kB runtime)
+- [Bulma](https://bulma.io) via
+  [react-bulma-components](https://github.com/couds/react-bulma-components) —
+  styled with the KDE Plasma "Breeze" palette (compiled from Sass)
+- [react-icons](https://react-icons.github.io/react-icons/) — Feather icons
+- [@tauri-apps/api](https://v2.tauri.app/reference/javascript/api/) — IPC
+  commands, events, webview drag & drop, asset protocol for frame images
+- [@tauri-apps/plugin-dialog](https://v2.tauri.app/plugin/dialog/) — open and
+  save file dialogs
+- Canvas 2D — the preview and crop overlay are drawn with the canvas API
+
+Backend (Rust):
+
+- [Tauri 2](https://tauri.app) — desktop shell; plugins: dialog, fs, opener,
   shell (sidecar processes)
-- [React 19](https://react.dev) + TypeScript — UI
-- [Bulma](https://bulma.io) via [react-bulma-components](https://github.com/couds/react-bulma-components) — styled with the KDE
-  Plasma "Breeze" palette
-- Canvas preview — the preview and crop overlay are drawn with the 2D
-  canvas API
-- [react-icons](https://react-icons.github.io/react-icons/) (Feather icons)
-- [FFmpeg](https://ffmpeg.org) — frame extraction, metadata probing and
-  export (sidecar binaries prepared by `scripts/prepare-sidecars.sh`)
-- [interactjs](https://interactjs.io), [mobx](https://mobx.js.org) and other
-  utilities pinned by the starter template
+- [serde](https://serde.rs) + [serde_json](https://github.com/serde-rs/json) —
+  command payloads and ffprobe output parsing
+- [FFmpeg](https://ffmpeg.org) / FFprobe — bundled sidecar binaries for frame
+  extraction, metadata probing and export
+- [wry](https://github.com/tauri-apps/wry) 0.57 — locally patched under
+  `src-tauri/patches/wry` to fix Linux drag & drop delivery

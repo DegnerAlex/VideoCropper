@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Component, createRef } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import { Component, createRef } from "preact/compat";
+import type { PointerEvent as ReactPointerEvent } from "preact/compat";
 import { Loader } from "react-bulma-components";
 import { clamp } from "./format";
 

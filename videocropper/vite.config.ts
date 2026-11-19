@@ -13,15 +13,26 @@
 // limitations under the License.
 
 import {defineConfig, UserConfig} from "vite";
-import react from "@vitejs/plugin-react";
 
 const host = 'localhost';
+
+// react* imports (including the ones inside react-bulma-components and
+// react-icons) are resolved to the Preact compat layer.
+const aliases = {
+    "react-dom/client": "preact/compat/client",
+    "react-dom": "preact/compat",
+    "react/jsx-dev-runtime": "preact/compat/jsx-dev-runtime",
+    "react/jsx-runtime": "preact/compat/jsx-runtime",
+    react: "preact/compat",
+};
 
 // https://vite.dev/config/
 export default defineConfig({
     base: './',
 
-    plugins: [react()],
+    resolve: {
+        alias: aliases,
+    },
 
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //
