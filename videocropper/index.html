@@ -14,15 +14,65 @@
   limitations under the License.
 -->
 <!doctype html>
-<html lang="ru">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Video Cutter</title>
+    <title>Video Cropper</title>
+    <style>
+      /* Splash screen: static markup shows instantly while the script bundle
+         loads; the app removes it once React has mounted. */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: grid;
+        place-items: center;
+        background: #232629;
+        color: #fcfcfc;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        user-select: none;
+      }
+      .splash-spinner {
+        width: 2.4rem;
+        height: 2.4rem;
+        margin: 0 auto 1rem;
+        border: 3px solid rgba(255, 255, 255, 0.14);
+        border-top-color: #3daee9;
+        border-radius: 50%;
+        animation: splash-spin 0.8s linear infinite;
+      }
+      .splash-title {
+        font-size: 1.05rem;
+        letter-spacing: 0.04em;
+        opacity: 0.9;
+      }
+      @keyframes splash-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @media (prefers-color-scheme: light) {
+        #splash {
+          background: #eff0f1;
+          color: #232629;
+        }
+        .splash-spinner {
+          border-color: rgba(0, 0, 0, 0.1);
+          border-top-color: #3daee9;
+        }
+      }
+    </style>
   </head>
 
   <body>
+    <div id="splash">
+      <div>
+        <div class="splash-spinner"></div>
+        <div class="splash-title">Video Cropper</div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

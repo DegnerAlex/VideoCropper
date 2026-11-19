@@ -14,8 +14,20 @@
 
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { invoke } from "@tauri-apps/api/core";
 // App.scss also compiles Bulma (configured with the project palette).
 import App from "./App";
+
+// The window is created hidden (tauri.conf.json) so the user never sees a
+// blank or wrong-theme window while the webview starts. Reveal it after the
+// splash screen has actually painted — the splash uses the exact
+// `prefers-color-scheme` palette of the main interface. The double
+// requestAnimationFrame guarantees the first frame is on screen.
+requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+        void invoke("app_ready").catch(() => undefined);
+    });
+});
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>

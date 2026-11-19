@@ -21,6 +21,14 @@ fn dnd_debug(msg: String) {
     eprintln!("[dnd-debug] {msg}");
 }
 
+/// Called by the frontend as soon as the splash screen is rendered, to reveal
+/// the hidden window (no blank/white flash on startup).
+#[tauri::command]
+fn app_ready(window: tauri::WebviewWindow) {
+    eprintln!("[app-dnd] window shown via app_ready");
+    let _ = window.show();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -29,11 +37,24 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
+            app_ready,
             dnd_debug,
             media::open_video,
             media::snapshot_video,
             media::export_video
         ])
+        .setup(|app| {
+            // Fallback: if the frontend never calls `app_ready` (e.g. the page
+            // failed to load), still show the window after a short delay.
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(10));
+                if let Some(window) = handle.get_webview_window("main") {
+                    let _ = window.show();
+                }
+            });
+            Ok(())
+        })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(event) = event {
                 eprintln!("[app-dnd] tauri DragDrop event: {:?}", event);

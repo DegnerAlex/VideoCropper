@@ -224,7 +224,10 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
                     </div>
                 )}
 
-                {frameLoading && (
+                {/* Full-stage loader only when an existing frame is being
+                    refreshed; while there is no frame yet the note above
+                    already shows a spinner. */}
+                {frameLoading && this.props.frameUrl && (
                     <div className="preview-loading" aria-hidden="true">
                         <Loader className="frame-spinner" />
                     </div>

@@ -212,6 +212,10 @@ class App extends Component<Record<string, never>, AppState> {
     private notificationTimers = new Set<number>();
 
     componentDidMount(): void {
+        // The static splash screen in index.html is only needed until the app
+        // is mounted.
+        document.getElementById("splash")?.remove();
+
         window.addEventListener("keydown", this.handleKeyDown);
         window.addEventListener("pointerdown", this.handleGlobalPointerDown);
 
