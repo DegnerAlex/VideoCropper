@@ -1,6 +1,6 @@
 # Video Cropper
 
-A desktop video trimming and cropping tool built with Tauri 2, React 19 and
+A desktop video trimming and cropping tool built with Tauri 2, Preact and
 TypeScript. Everything runs locally — no uploads, no external services.
 
 
@@ -108,7 +108,14 @@ provides FFmpeg/ffprobe for local development.
 
 ## Production builds
 
-Build the desktop application with Cargo:
+Build the desktop application with Cargo (inside the dev container):
+
+```bash
+make appimage        # build only
+make all             # build + GitHub release + upload (requires gh)
+```
+
+or directly:
 
 ```bash
 cargo tauri build --bundles appimage
@@ -152,8 +159,8 @@ Frontend:
 
 Backend (Rust):
 
-- [Tauri 2](https://tauri.app) — desktop shell; plugins: dialog, fs, opener,
-  shell (sidecar processes)
+- [Tauri 2](https://tauri.app) — desktop shell; plugins: dialog (file
+  dialogs) and shell (sidecar processes)
 - [serde](https://serde.rs) + [serde_json](https://github.com/serde-rs/json) —
   command payloads and ffprobe output parsing
 - [FFmpeg](https://ffmpeg.org) / FFprobe — bundled sidecar binaries for frame
