@@ -29,7 +29,7 @@ scripts/prepare-sidecars.sh aarch64-unknown-linux-gnu
 
 Development builds do not use these files: `cargo tauri dev` runs inside the
 dev container, which provides FFmpeg/ffprobe via `PATH`
-(see `docker/videocutter/Dockerfile`).
+(see `docker/videocropper/Dockerfile`).
 
 The downloaded builds are GPL (they include x264/x265). Review
 <https://ffmpeg.org/legal.html> before distributing the application.

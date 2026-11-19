@@ -56,7 +56,7 @@ const FALLBACK_FPS = 25;
 const RESET_RANGE: TimeRange = { start: 0, end: 0 };
 
 /** Persisted editor session (localStorage). */
-const SESSION_KEY = "videocutter.session";
+const SESSION_KEY = "videocropper.session";
 
 /** Metadata returned by the `open_video` Tauri command. */
 export interface VideoMeta {

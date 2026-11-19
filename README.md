@@ -100,10 +100,10 @@ pnpm dev       # vite dev server only
 pnpm build     # typecheck + production build of the frontend
 ```
 
-The Tauri backend lives in `videocutter/src-tauri/`. Rust checks:
+The Tauri backend lives in `videocropper/src-tauri/`. Rust checks:
 
 ```bash
-cargo check --manifest-path videocutter/src-tauri/Cargo.toml
+cargo check --manifest-path videocropper/src-tauri/Cargo.toml
 ```
 
 ## Production builds
@@ -120,7 +120,7 @@ Then build the desktop application:
 pnpm tauri build
 ```
 
-Artifacts are written to `videocutter/src-tauri/target/release/bundle/`. The
+Artifacts are written to `videocropper/src-tauri/target/release/bundle/`. The
 downloaded sidecar binaries are GPL-licensed (they include x264/x265) — review
 <https://ffmpeg.org/legal.html> before distributing.
 

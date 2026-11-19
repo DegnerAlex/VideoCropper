@@ -15,7 +15,7 @@
 //! FFmpeg/ffprobe process helpers and video metadata probing.
 //!
 //! In development the binaries are provided by the dev container (see
-//! `docker/videocutter/Dockerfile`) and resolved from `PATH`. Release builds
+//! `docker/videocropper/Dockerfile`) and resolved from `PATH`. Release builds
 //! use the sidecar binaries bundled via `bundle.externalBin`
 //! (see `src-tauri/tauri.conf.json` and `scripts/prepare-sidecars.sh`).
 
