@@ -43,10 +43,7 @@ services:
       # WebKitGTK does not receive file drops on native Wayland; run the
       # webview under XWayland so drag & drop works.
       - GDK_BACKEND=x11
-      - RUST_BACKTRACE=full
       - DISPLAY=${DISPLAY}
-      - WEBKIT_DEBUG=1
-      - CI=true
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       # linuxdeploy (AppImage bundler) is itself an AppImage and cannot mount

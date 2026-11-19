@@ -96,42 +96,6 @@ interface AttachSettings {
     crop: CropRect | null;
 }
 
-/**
- * Dev-only demo frame (`/?demo` in the browser). Lets the canvas preview,
- * crop overlay and timeline be exercised without a Tauri backend.
- */
-const DEMO_META: VideoMeta = {
-    path: "demo://pattern",
-    name: "demo-pattern.svg",
-    durationMs: 8000,
-    width: 1280,
-    height: 720,
-    videoCodec: "demo",
-    audioCodec: null,
-    fps: 25,
-    formatName: "demo",
-    sizeBytes: 0,
-    probeError: null,
-};
-
-const DEMO_FRAME_URL = `data:image/svg+xml;utf8,${encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='1280' height='720'>` +
-        `<defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'>` +
-        `<stop offset='0' stop-color='#396cd8'/><stop offset='1' stop-color='#61dafb'/>` +
-        `</linearGradient></defs>` +
-        `<rect width='1280' height='720' fill='url(#g)'/>` +
-        `<rect x='0' y='0' width='160' height='720' fill='#e2e23a'/>` +
-        `<rect x='160' y='0' width='160' height='720' fill='#3ae27a'/>` +
-        `<rect x='320' y='0' width='160' height='720' fill='#e23a5f'/>` +
-        `<rect x='480' y='0' width='160' height='720' fill='#ffffff'/>` +
-        `<circle cx='1040' cy='360' r='180' fill='#101418'/>` +
-        `<text x='1040' y='380' font-size='80' fill='#ffffff' text-anchor='middle'>DEMO</text>` +
-        `</svg>`,
-)}`;
-
-const isDemoMode = () =>
-    import.meta.env.DEV && new URLSearchParams(window.location.search).has("demo");
-
 function describeError(error: unknown): string {
     if (typeof error === "string") {
         return error;
@@ -243,11 +207,6 @@ class App extends Component<Record<string, never>, AppState> {
             .catch((error) => {
                 console.warn("export progress listener is unavailable", error);
             });
-
-        // Dev-only: `/?demo` opens a synthetic pattern to exercise the editor.
-        if (!isTauri() && isDemoMode()) {
-            this.attachVideo(DEMO_META);
-        }
 
         this.restoreSession();
     }
@@ -735,7 +694,7 @@ class App extends Component<Record<string, never>, AppState> {
 
         if (!isTauri()) {
             this.setState({
-                frameUrl: isDemoMode() ? DEMO_FRAME_URL : null,
+                frameUrl: null,
                 frameLoading: false,
             });
             return;
