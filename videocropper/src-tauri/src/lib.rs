@@ -14,6 +14,13 @@
 
 pub mod media;
 
+use tauri::Manager;
+
+#[tauri::command]
+fn dnd_debug(msg: String) {
+    eprintln!("[dnd-debug] {msg}");
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -22,10 +29,44 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
+            dnd_debug,
             media::open_video,
             media::snapshot_video,
             media::export_video
         ])
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::DragDrop(event) = event {
+                eprintln!("[app-dnd] tauri DragDrop event: {:?}", event);
+                // The regular `tauri://drag-drop` event delivery is
+                // unreliable under some setups (XWayland bridging), so drag
+                // and drop is bridged into the webview directly via eval.
+                let script = match event {
+                    tauri::DragDropEvent::Enter { .. } | tauri::DragDropEvent::Over { .. } => {
+                        Some("window.__onNativeDragState && window.__onNativeDragState(true);".to_string())
+                    }
+                    tauri::DragDropEvent::Leave => {
+                        Some("window.__onNativeDragState && window.__onNativeDragState(false);".to_string())
+                    }
+                    tauri::DragDropEvent::Drop { paths, .. } => {
+                        if paths.is_empty() {
+                            None
+                        } else {
+                            let payload = serde_json::to_string(paths)
+                                .unwrap_or_else(|_| "[]".to_string());
+                            Some(format!(
+                                "window.__onNativeDrop && window.__onNativeDrop({payload});"
+                            ))
+                        }
+                    }
+                    _ => None,
+                };
+                if let Some(script) = script {
+                    if let Some(webview) = window.get_webview_window(window.label()) {
+                        let _ = webview.eval(&script);
+                    }
+                }
+            }
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -34,3 +34,8 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+# Wry 0.57 rejects URI-list drops on Linux (drag-motion never accepts),
+# which prevents file drag & drop from working at all. Patched locally.
+[patch.crates-io]
+wry = { path = "patches/wry" }

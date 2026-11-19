@@ -40,6 +40,9 @@ services:
     environment:
       - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
       - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
+      # WebKitGTK does not receive file drops on native Wayland; run the
+      # webview under XWayland so drag & drop works.
+      - GDK_BACKEND=x11
       - RUST_BACKTRACE=full
       - DISPLAY=${DISPLAY}
       - WEBKIT_DISABLE_COMPOSITING_MODE=1

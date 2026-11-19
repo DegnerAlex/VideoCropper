@@ -92,19 +92,6 @@ docker compose up
 The frontend dev server runs on `http://localhost:1420`. The dev container
 provides FFmpeg/ffprobe for local development.
 
-Useful commands (run inside the `frontend` service or locally):
-
-```bash
-pnpm install   # install dependencies
-pnpm dev       # vite dev server only
-pnpm build     # typecheck + production build of the frontend
-```
-
-The Tauri backend lives in `videocropper/src-tauri/`. Rust checks:
-
-```bash
-cargo check --manifest-path videocropper/src-tauri/Cargo.toml
-```
 
 ## Production builds
 
