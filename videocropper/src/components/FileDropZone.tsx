@@ -100,10 +100,6 @@ export class FileDropZone extends Component<FileDropZoneProps> {
         window.removeEventListener("drop", this.handleDrop);
     }
 
-    render(): null {
-        return null;
-    }
-
     private handleNativeEvent: NativeDragDropHandler = (event) => {
         const payload = event.payload;
 
@@ -166,4 +162,8 @@ export class FileDropZone extends Component<FileDropZoneProps> {
             this.props.onDrop({ paths: [], files });
         }
     };
+
+    render(): null {
+        return null;
+    }
 }

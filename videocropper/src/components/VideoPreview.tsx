@@ -196,46 +196,6 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         this.resizeObserver?.disconnect();
     }
 
-    render() {
-        const { frameLoading, placeholder } = this.props;
-        const videoRect = this.videoRect;
-
-        const note = !videoRect
-            ? (placeholder ?? "Preview unavailable")
-            : !this.props.frameUrl
-              ? "Extracting frame…"
-              : null;
-
-        return (
-            <div className="preview-stage" ref={this.stageRef}>
-                <canvas
-                    ref={this.canvasRef}
-                    className="preview-canvas"
-                    onPointerDown={this.handlePointerDown}
-                    onPointerMove={this.handlePointerMove}
-                    onPointerUp={this.finishDrag}
-                    onPointerCancel={this.cancelDrag}
-                />
-
-                {note && (
-                    <div className="preview-note">
-                        {note === "Extracting frame…" && <Loader className="frame-spinner" />}
-                        <span>{note}</span>
-                    </div>
-                )}
-
-                {/* Full-stage loader only when an existing frame is being
-                    refreshed; while there is no frame yet the note above
-                    already shows a spinner. */}
-                {frameLoading && this.props.frameUrl && (
-                    <div className="preview-loading" aria-hidden="true">
-                        <Loader className="frame-spinner" />
-                    </div>
-                )}
-            </div>
-        );
-    }
-
     /** Letterboxed video area inside the canvas. */
     private get videoRect(): PixelRect | null {
         const { frameSize } = this.props;
@@ -788,4 +748,44 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
             }
         }
     };
+
+    render() {
+        const { frameLoading, placeholder } = this.props;
+        const videoRect = this.videoRect;
+
+        const note = !videoRect
+            ? (placeholder ?? "Preview unavailable")
+            : !this.props.frameUrl
+              ? "Extracting frame…"
+              : null;
+
+        return (
+            <div className="preview-stage" ref={this.stageRef}>
+                <canvas
+                    ref={this.canvasRef}
+                    className="preview-canvas"
+                    onPointerDown={this.handlePointerDown}
+                    onPointerMove={this.handlePointerMove}
+                    onPointerUp={this.finishDrag}
+                    onPointerCancel={this.cancelDrag}
+                />
+
+                {note && (
+                    <div className="preview-note">
+                        {note === "Extracting frame…" && <Loader className="frame-spinner" />}
+                        <span>{note}</span>
+                    </div>
+                )}
+
+                {/* Full-stage loader only when an existing frame is being
+                    refreshed; while there is no frame yet the note above
+                    already shows a spinner. */}
+                {frameLoading && this.props.frameUrl && (
+                    <div className="preview-loading" aria-hidden="true">
+                        <Loader className="frame-spinner" />
+                    </div>
+                )}
+            </div>
+        );
+    }
 }

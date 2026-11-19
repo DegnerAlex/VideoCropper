@@ -1,6 +1,6 @@
 # Video Cropper — build and release automation
 
-APP_NAME      := Video Cropper
+APP_NAME      := Video\ Cropper
 APP_ID        := me.ergofox.videocropper
 
 # Version from the Tauri config.

@@ -80,113 +80,6 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
         playheadDragging: false,
     };
 
-    render() {
-        const { duration, currentTime, range, activeHandle } = this.props;
-        const { step, ticks } = this.ticks;
-
-        // A selected (not currently dragged) handle keeps its tooltip visible.
-        const tooltips = this.state.tooltips.length > 0 ? this.state.tooltips : this.activeTooltips;
-
-        return (
-            <div
-                className="timeline-track"
-                ref={this.trackRef}
-                role="slider"
-                tabIndex={0}
-                aria-label="Video timeline"
-                aria-orientation="horizontal"
-                aria-valuemin={0}
-                aria-valuemax={Math.round(duration * 1000) / 1000}
-                aria-valuenow={Math.round(currentTime * 1000) / 1000}
-                aria-valuetext={formatTime(currentTime)}
-                onPointerDown={this.handlePointerDown}
-                onPointerMove={this.handlePointerMove}
-                onPointerUp={this.finishDrag}
-                onPointerCancel={this.finishDrag}
-                onKeyDown={this.handleKeyDown}
-            >
-                <div className="timeline-ruler">
-                    {ticks.map((time, index) => (
-                        <span
-                            key={time}
-                            className={
-                                "timeline-tick" +
-                                (index === 0 ? " is-first" : "") +
-                                (index === ticks.length - 1 ? " is-last" : "")
-                            }
-                            style={{ left: `${this.percent(time)}%` }}
-                        >
-                            {formatTick(time, step)}
-                        </span>
-                    ))}
-                </div>
-
-                <div
-                    className="timeline-dim"
-                    style={{
-                        left: -23,
-                        width: `calc(23px + ${this.percent(range.start)}%)`,
-                    }}
-                />
-                <div
-                    className="timeline-dim"
-                    style={{ left: `${this.percent(range.end)}%`, right: -23 }}
-                />
-
-                <div
-                    className="timeline-region"
-                    data-region
-                    style={{
-                        left: `${this.percent(range.start)}%`,
-                        width: `${this.percent(Math.max(0, range.end - range.start))}%`,
-                    }}
-                >
-                    <span
-                        className={
-                            "timeline-handle is-start" +
-                            (activeHandle === "start" ? " is-active" : "")
-                        }
-                        data-handle="start"
-                    />
-                    <span
-                        className={
-                            "timeline-handle is-end" +
-                            (activeHandle === "end" ? " is-active" : "")
-                        }
-                        data-handle="end"
-                    />
-                </div>
-
-                <div
-                    className={
-                        "timeline-playhead" +
-                        (this.state.playheadDragging ? " is-dragging" : "")
-                    }
-                    style={{ left: `${this.percent(currentTime)}%` }}
-                />
-
-                <div
-                    className={
-                        "timeline-playhead-handle" +
-                        (this.state.playheadDragging ? " is-dragging" : "")
-                    }
-                    style={{ left: `${this.percent(currentTime)}%` }}
-                    data-handle="playhead"
-                />
-
-                {tooltips.map((tip, index) => (
-                    <span
-                        key={`${tip.time}-${index}`}
-                        className="timeline-tooltip"
-                        style={{ left: `${tip.left}%` }}
-                    >
-                        {formatTime(tip.time)}
-                    </span>
-                ))}
-            </div>
-        );
-    }
-
     private get percent(): (time: number) => number {
         const { duration } = this.props;
         return (time: number) => (duration > 0 ? clamp((time / duration) * 100, 0, 100) : 0);
@@ -394,4 +287,111 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
             this.props.onSeek(range.end);
         }
     };
+
+    render() {
+        const { duration, currentTime, range, activeHandle } = this.props;
+        const { step, ticks } = this.ticks;
+
+        // A selected (not currently dragged) handle keeps its tooltip visible.
+        const tooltips = this.state.tooltips.length > 0 ? this.state.tooltips : this.activeTooltips;
+
+        return (
+            <div
+                className="timeline-track"
+                ref={this.trackRef}
+                role="slider"
+                tabIndex={0}
+                aria-label="Video timeline"
+                aria-orientation="horizontal"
+                aria-valuemin={0}
+                aria-valuemax={Math.round(duration * 1000) / 1000}
+                aria-valuenow={Math.round(currentTime * 1000) / 1000}
+                aria-valuetext={formatTime(currentTime)}
+                onPointerDown={this.handlePointerDown}
+                onPointerMove={this.handlePointerMove}
+                onPointerUp={this.finishDrag}
+                onPointerCancel={this.finishDrag}
+                onKeyDown={this.handleKeyDown}
+            >
+                <div className="timeline-ruler">
+                    {ticks.map((time, index) => (
+                        <span
+                            key={time}
+                            className={
+                                "timeline-tick" +
+                                (index === 0 ? " is-first" : "") +
+                                (index === ticks.length - 1 ? " is-last" : "")
+                            }
+                            style={{ left: `${this.percent(time)}%` }}
+                        >
+                            {formatTick(time, step)}
+                        </span>
+                    ))}
+                </div>
+
+                <div
+                    className="timeline-dim"
+                    style={{
+                        left: -23,
+                        width: `calc(23px + ${this.percent(range.start)}%)`,
+                    }}
+                />
+                <div
+                    className="timeline-dim"
+                    style={{ left: `${this.percent(range.end)}%`, right: -23 }}
+                />
+
+                <div
+                    className="timeline-region"
+                    data-region
+                    style={{
+                        left: `${this.percent(range.start)}%`,
+                        width: `${this.percent(Math.max(0, range.end - range.start))}%`,
+                    }}
+                >
+                    <span
+                        className={
+                            "timeline-handle is-start" +
+                            (activeHandle === "start" ? " is-active" : "")
+                        }
+                        data-handle="start"
+                    />
+                    <span
+                        className={
+                            "timeline-handle is-end" +
+                            (activeHandle === "end" ? " is-active" : "")
+                        }
+                        data-handle="end"
+                    />
+                </div>
+
+                <div
+                    className={
+                        "timeline-playhead" +
+                        (this.state.playheadDragging ? " is-dragging" : "")
+                    }
+                    style={{ left: `${this.percent(currentTime)}%` }}
+                />
+
+                <div
+                    className={
+                        "timeline-playhead-handle" +
+                        (this.state.playheadDragging ? " is-dragging" : "")
+                    }
+                    style={{ left: `${this.percent(currentTime)}%` }}
+                    data-handle="playhead"
+                />
+
+                {tooltips.map((tip, index) => (
+                    <span
+                        key={`${tip.time}-${index}`}
+                        className="timeline-tooltip"
+                        style={{ left: `${tip.left}%` }}
+                    >
+                        {formatTime(tip.time)}
+                    </span>
+                ))}
+            </div>
+        );
+    }
 }

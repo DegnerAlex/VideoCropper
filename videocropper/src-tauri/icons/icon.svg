@@ -1,44 +1,69 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-  Copyright 2026 Alex Degner (alex@ergofox.me)
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- Сине-фиолетовый градиент внутреннего квадрата -->
+    <linearGradient id="innerSquareGrad" x1="25%" y1="15%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#28A9E5" />
+      <stop offset="55%" stop-color="#32B2EC" />
+      <stop offset="100%" stop-color="#9A7CE4" />
+    </linearGradient>
 
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
+    <!-- Градиент более тёмных горизонтальных лент (с тенями на сгибах) -->
+    <linearGradient id="topBarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#762CB4" />
+      <stop offset="18%" stop-color="#9B46DA" />
+      <stop offset="85%" stop-color="#9B46DA" />
+      <stop offset="100%" stop-color="#8A37C7" />
+    </linearGradient>
 
-      http://www.apache.org/licenses/LICENSE-2.0
+    <linearGradient id="bottomBarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8836C6" />
+      <stop offset="15%" stop-color="#9B46DA" />
+      <stop offset="82%" stop-color="#9B46DA" />
+      <stop offset="100%" stop-color="#762CB4" />
+    </linearGradient>
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+    <!-- Градиент светлых вертикальных лент -->
+    <linearGradient id="verticalBarGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#BC60F3" />
+      <stop offset="100%" stop-color="#B052EA" />
+    </linearGradient>
 
-  Video Cropper application icon: a video frame with trim handles and
-  crop marks, flat and minimalistic, in the app's Breeze palette.
--->
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Video frame outline (accent blue) -->
-  <rect x="212" y="292" width="600" height="440" rx="56"
-        fill="none" stroke="#3daee9" stroke-width="36"/>
+    <!-- Внутренняя тень по периметру синего квадрата от нависающих лент -->
+    <filter id="innerShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1A3A6E" flood-opacity="0.35" />
+    </filter>
 
-  <!-- Viewfinder-style crop marks inside the frame corners -->
-  <g stroke="#232629" stroke-width="20" stroke-linecap="round" fill="none">
-    <!-- top-left -->
-    <path d="M 276 356 H 348"/>
-    <path d="M 276 356 V 428"/>
-    <!-- top-right -->
-    <path d="M 748 356 H 676"/>
-    <path d="M 748 356 V 428"/>
-    <!-- bottom-left -->
-    <path d="M 276 668 H 348"/>
-    <path d="M 276 668 V 596"/>
-    <!-- bottom-right -->
-    <path d="M 748 668 H 676"/>
-    <path d="M 748 668 V 596"/>
-  </g>
+    <!-- Мягкая тень для кнопки Play и передних лент -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#1E1035" flood-opacity="0.28" />
+    </filter>
 
-  <!-- Trim handles gripping the frame edges (accent green) -->
-  <rect x="184" y="384" width="56" height="256" rx="28" fill="#27ae60"/>
-  <rect x="784" y="384" width="56" height="256" rx="28" fill="#27ae60"/>
+    <!-- Тень по бокам вертикальных лент в местах пересечения -->
+    <filter id="flapShadow" x="-25%" y="-10%" width="150%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#3B0F63" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- 1. Внутренний фон (видеокадр) -->
+  <rect x="68" y="66" width="126" height="126" fill="url(#innerSquareGrad)" />
+
+  <!-- Внутренняя тень от рамок поверх синего квадрата -->
+  <rect x="68" y="66" width="126" height="126" fill="none" stroke="#1E4B8F" stroke-width="4" opacity="0.18" />
+
+  <!-- 2. Нижний (задний) слой горизонтальных полос -->
+  <!-- Верхняя горизонтальная полоса (с левым выступом и основной частью) -->
+  <path d="M 22,28 H 192 V 68 H 22 A 7,7 0 0 1 15,61 V 35 A 7,7 0 0 1 22,28 Z" fill="url(#topBarGrad)" />
+
+  <!-- Нижняя горизонтальная полоса (основная часть и правый выступ) -->
+  <path d="M 71,191 H 240 A 7,7 0 0 1 247,198 V 224 A 7,7 0 0 1 240,231 H 71 Z" fill="url(#bottomBarGrad)" />
+
+  <!-- 3. Верхний (передний) слой вертикальных скруглённых лент -->
+  <!-- Левая вертикальная лента со скруглённым нижним левым углом -->
+  <path d="M 39,11 H 64 A 7,7 0 0 1 71,18 V 231 L 47,207 C 37,197 32,184 32,169 V 18 A 7,7 0 0 1 39,11 Z" fill="url(#verticalBarGrad)" filter="url(#flapShadow)" />
+
+  <!-- Правая вертикальная лента со скруглённым верхним правым углом -->
+  <path d="M 192,28 L 216,52 C 226,62 231,75 231,90 V 241 A 7,7 0 0 1 224,248 H 199 A 7,7 0 0 1 192,241 Z" fill="url(#verticalBarGrad)" filter="url(#flapShadow)" />
+
+  <!-- 4. Иконка Play по центру -->
+  <path d="M 115,112.5 C 115,109.2 118.6,107.2 121.4,108.9 L 156.5,130.4 C 159.2,132.0 159.2,136.0 156.5,137.6 L 121.4,159.1 C 118.6,160.8 115,158.8 115,155.5 Z" fill="#FFFFFF" filter="url(#softShadow)" />
 </svg>

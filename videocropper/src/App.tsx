@@ -283,138 +283,6 @@ class App extends Component<Record<string, never>, AppState> {
         this.notificationTimers.clear();
     }
 
-    render() {
-        const { video, isDragging } = this.state;
-
-        return (
-            <div className="app">
-                <FileDropZone
-                    onDrop={this.handleFileDrop}
-                    onDragStateChange={this.handleDragStateChange}
-                />
-
-                <input
-                    ref={this.fileInputRef}
-                    type="file"
-                    accept="video/*"
-                    hidden
-                    onChange={(event) => {
-                        const file = event.currentTarget.files?.[0];
-                        if (file) {
-                            this.notify(
-                                "warning",
-                                "Opening files works in the Video Cutter app — run it via `cargo tauri dev`.",
-                            );
-                        }
-                        event.currentTarget.value = "";
-                    }}
-                />
-
-                {!video ? (
-                    <Section className="empty-state">
-                        <Box className="empty-card">
-                            <div className="empty-icon" aria-hidden="true">
-                                ⬇
-                            </div>
-                            <Heading className="empty-title">
-                                Drop a video into the window
-                            </Heading>
-                            <p className="empty-text">
-                                MP4, MOV, MKV, WebM, AVI and more. The preview is built
-                                frame by frame with FFmpeg — no system player codecs required.
-                            </p>
-                            <Button
-                                color="primary"
-                                size="medium"
-                                onClick={() => void this.chooseFile()}
-                            >
-                                Choose file
-                            </Button>
-                        </Box>
-                    </Section>
-                ) : (
-                    <main className="editor">
-                        <Box className="preview-card">
-                            <VideoPreview
-                                frameUrl={this.state.frameUrl}
-                                frameLoading={this.state.frameLoading}
-                                frameSize={this.state.frameSize}
-                                crop={this.state.crop}
-                                cropAspect={this.state.cropAspect}
-                                onCropChange={(crop) => this.setState({ crop })}
-                                onFrameLoad={this.handleFrameLoad}
-                                onOpenFileDialog={() =>
-                                    void this.chooseFile(this.currentFileDir(video.path))
-                                }
-                                placeholder={isTauri() ? "Extracting frame…" : undefined}
-                            />
-
-                            <Timeline
-                                duration={this.state.duration}
-                                currentTime={this.state.currentTime}
-                                range={this.state.range}
-                                fps={video.fps && video.fps > 0 ? video.fps : 25}
-                                activeHandle={this.state.activeHandle}
-                                onActiveHandleChange={(activeHandle) =>
-                                    this.setState({ activeHandle })
-                                }
-                                keepSettings={this.state.keepSettings}
-                                onKeepSettingsChange={(keepSettings) =>
-                                    this.setState({ keepSettings })
-                                }
-                                cropAspect={this.state.cropAspect}
-                                onCropAspectChange={this.handleCropAspectChange}
-                                rememberVideo={this.state.rememberVideo}
-                                onRememberVideoChange={(rememberVideo) =>
-                                    this.setState({ rememberVideo })
-                                }
-                                hasSelections={this.hasSelections}
-                                onClearSelections={this.clearSelections}
-                                exporting={this.state.exporting}
-                                exportProgress={this.state.exportProgress}
-                                onOpenFile={() => void this.chooseFile(this.currentFileDir(video.path))}
-                                onExport={() => void this.handleExport()}
-                                onSeek={this.seek}
-                                onRangeChange={(range) => this.setState({ range })}
-                            />
-                        </Box>
-                    </main>
-                )}
-
-            <div className="notification-stack">
-                {this.state.notifications.map((item) => (
-                    <Notification
-                        key={item.id}
-                        className="app-notification"
-                        color={item.kind}
-                        light
-                    >
-                        <span className="app-notification-text">{item.text}</span>
-                        <Button
-                            className="app-notification-close"
-                            size="small"
-                            color="light"
-                            aria-label="Close"
-                            onClick={() => this.dismissNotification(item.id)}
-                        >
-                            <FiX />
-                        </Button>
-                    </Notification>
-                ))}
-            </div>
-
-                {isDragging && (
-                    <div className="drop-overlay" aria-hidden="true">
-                        <div className="drop-overlay-inner">
-                            <span className="drop-overlay-icon">⬇</span>
-                            <p>Release to open the video</p>
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
-    }
-
     /** While a timeline handle is selected, the preview follows that handle;
      * otherwise it follows the main playhead. */
     private get previewTime(): number {
@@ -959,6 +827,138 @@ class App extends Component<Record<string, never>, AppState> {
             this.setState({ activeHandle: null });
         }
     };
+
+    render() {
+        const { video, isDragging } = this.state;
+
+        return (
+            <div className="app">
+                <FileDropZone
+                    onDrop={this.handleFileDrop}
+                    onDragStateChange={this.handleDragStateChange}
+                />
+
+                <input
+                    ref={this.fileInputRef}
+                    type="file"
+                    accept="video/*"
+                    hidden
+                    onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        if (file) {
+                            this.notify(
+                                "warning",
+                                "Opening files works in the Video Cutter app — run it via `cargo tauri dev`.",
+                            );
+                        }
+                        event.currentTarget.value = "";
+                    }}
+                />
+
+                {!video ? (
+                    <Section className="empty-state">
+                        <Box className="empty-card">
+                            <div className="empty-icon" aria-hidden="true">
+                                ⬇
+                            </div>
+                            <Heading className="empty-title">
+                                Drop a video into the window
+                            </Heading>
+                            <p className="empty-text">
+                                MP4, MOV, MKV, WebM, AVI and more. The preview is built
+                                frame by frame with FFmpeg — no system player codecs required.
+                            </p>
+                            <Button
+                                color="primary"
+                                size="medium"
+                                onClick={() => void this.chooseFile()}
+                            >
+                                Choose file
+                            </Button>
+                        </Box>
+                    </Section>
+                ) : (
+                    <main className="editor">
+                        <Box className="preview-card">
+                            <VideoPreview
+                                frameUrl={this.state.frameUrl}
+                                frameLoading={this.state.frameLoading}
+                                frameSize={this.state.frameSize}
+                                crop={this.state.crop}
+                                cropAspect={this.state.cropAspect}
+                                onCropChange={(crop) => this.setState({ crop })}
+                                onFrameLoad={this.handleFrameLoad}
+                                onOpenFileDialog={() =>
+                                    void this.chooseFile(this.currentFileDir(video.path))
+                                }
+                                placeholder={isTauri() ? "Extracting frame…" : undefined}
+                            />
+
+                            <Timeline
+                                duration={this.state.duration}
+                                currentTime={this.state.currentTime}
+                                range={this.state.range}
+                                fps={video.fps && video.fps > 0 ? video.fps : 25}
+                                activeHandle={this.state.activeHandle}
+                                onActiveHandleChange={(activeHandle) =>
+                                    this.setState({ activeHandle })
+                                }
+                                keepSettings={this.state.keepSettings}
+                                onKeepSettingsChange={(keepSettings) =>
+                                    this.setState({ keepSettings })
+                                }
+                                cropAspect={this.state.cropAspect}
+                                onCropAspectChange={this.handleCropAspectChange}
+                                rememberVideo={this.state.rememberVideo}
+                                onRememberVideoChange={(rememberVideo) =>
+                                    this.setState({ rememberVideo })
+                                }
+                                hasSelections={this.hasSelections}
+                                onClearSelections={this.clearSelections}
+                                exporting={this.state.exporting}
+                                exportProgress={this.state.exportProgress}
+                                onOpenFile={() => void this.chooseFile(this.currentFileDir(video.path))}
+                                onExport={() => void this.handleExport()}
+                                onSeek={this.seek}
+                                onRangeChange={(range) => this.setState({ range })}
+                            />
+                        </Box>
+                    </main>
+                )}
+
+            <div className="notification-stack">
+                {this.state.notifications.map((item) => (
+                    <Notification
+                        key={item.id}
+                        className="app-notification"
+                        color={item.kind}
+                        light
+                    >
+                        <span className="app-notification-text">{item.text}</span>
+                        <Button
+                            className="app-notification-close"
+                            size="small"
+                            color="light"
+                            aria-label="Close"
+                            onClick={() => this.dismissNotification(item.id)}
+                        >
+                            <FiX />
+                        </Button>
+                    </Notification>
+                ))}
+            </div>
+
+                {isDragging && (
+                    <div className="drop-overlay" aria-hidden="true">
+                        <div className="drop-overlay-inner">
+                            <span className="drop-overlay-icon">⬇</span>
+                            <p>Release to open the video</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
 }
 
 export default App;
