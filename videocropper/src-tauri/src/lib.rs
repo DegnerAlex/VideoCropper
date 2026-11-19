@@ -14,13 +14,23 @@
 
 pub mod media;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// Called by the frontend as soon as the splash screen is rendered, to reveal
-/// the hidden window (no blank/white flash on startup).
+/// the hidden window (no blank/white flash on startup). Also hands over a
+/// video path passed on the command line, if there was one: the frontend
+/// listener is only registered by now, so an earlier emit would be lost.
 #[tauri::command]
-fn app_ready(window: tauri::WebviewWindow) {
+fn app_ready(app: tauri::AppHandle, window: tauri::WebviewWindow) {
     let _ = window.show();
+    if let Some(path) = app
+        .state::<std::sync::Mutex<Option<String>>>()
+        .lock()
+        .ok()
+        .and_then(|mut pending| pending.take())
+    {
+        let _ = app.emit("cli-open", path);
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -38,6 +48,20 @@ pub fn run() {
             media::export_video
         ])
         .setup(|app| {
+            // Command line: a video path can be passed as the first argument
+            // and is opened as soon as the frontend is ready.
+            let cli_path = std::env::args().nth(1).and_then(|arg| {
+                let path = std::path::PathBuf::from(&arg);
+                let path = std::fs::canonicalize(&path).ok()?;
+                if path.is_file() {
+                    let _ = app.asset_protocol_scope().allow_file(&path);
+                    Some(path.to_string_lossy().into_owned())
+                } else {
+                    None
+                }
+            });
+            app.manage(std::sync::Mutex::new(cli_path));
+
             // Fallback: if the frontend never calls `app_ready` (e.g. the page
             // failed to load), still show the window after a short delay.
             let handle = app.handle().clone();

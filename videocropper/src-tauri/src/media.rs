@@ -282,7 +282,18 @@ pub async fn snapshot_video(app: AppHandle, path: String, time: f64) -> Result<S
                 "-i",
             ])
             .arg(&source)
-            .args(["-frames:v", "1", "-q:v", "3", "-y"])
+            // mjpeg rejects limited-range YUV (the usual video range) unless
+            // the compliance level allows it; `unofficial` is the standard
+            // workaround used by ffmpeg itself for JPEG output.
+            .args([
+                "-strict",
+                "unofficial",
+                "-frames:v",
+                "1",
+                "-q:v",
+                "3",
+                "-y",
+            ])
             .arg(&output_path)
             .output()
             .await

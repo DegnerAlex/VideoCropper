@@ -222,6 +222,15 @@ class App extends Component<Record<string, never>, AppState> {
         window.addEventListener("keydown", this.handleKeyDown);
         window.addEventListener("pointerdown", this.handleGlobalPointerDown);
 
+        // A video path passed on the command line arrives here after the
+        // window is shown (see app_ready in src-tauri/src/lib.rs).
+        void listen<string>("cli-open", (event) => {
+            const path = typeof event.payload === "string" ? event.payload : "";
+            if (path) {
+                void this.openPath(path);
+            }
+        });
+
         void listen<{ percent: number }>("export-progress", (event) => {
             const percent = Number(event.payload?.percent);
             if (Number.isFinite(percent)) {

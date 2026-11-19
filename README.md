@@ -60,6 +60,12 @@ TypeScript. Everything runs locally — no uploads, no external services.
 - `I`/`O` set the in/out points at the playhead.
 - Shortcuts apply to the selected timeline handle when one is active.
 
+### Command line
+
+- Pass a video file path as the first argument to open it on launch:
+  `videocropper /path/to/video.mp4`. The path is resolved relative to the
+  working directory and must exist.
+
 ### Export
 
 - Applies the range and crop selections via FFmpeg: fast seek + H.264
