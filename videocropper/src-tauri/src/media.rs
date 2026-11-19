@@ -505,3 +505,71 @@ pub async fn export_video(app: AppHandle, options: ExportOptions) -> Result<Expo
         output_path: options.output,
     })
 }
+
+/// Peak audio amplitude per bucket (0..=1), used to draw the timeline
+/// waveform. Returns an empty vector when the file has no audio stream.
+#[tauri::command]
+pub async fn audio_waveform(app: AppHandle, path: String) -> Result<Vec<f32>, String> {
+    const BUCKETS: usize = 1500;
+
+    // `-map 0:a:0?` maps the first audio stream when present; for a
+    // video without audio the output is simply empty.
+    let output = ffmpeg(&app)?
+        .args([
+            "-v",
+            "error",
+            "-i",
+            &path,
+            "-map",
+            "0:a:0?",
+            "-ac",
+            "1",
+            "-ar",
+            "4000",
+            "-f",
+            "s16le",
+            "pipe:1",
+        ])
+        .output()
+        .await
+        .map_err(|error| format!("failed to run ffmpeg: {error}"))?;
+
+    let raw = output.stdout;
+    if raw.len() < 2 {
+        return Ok(Vec::new());
+    }
+
+    // s16le keeps every sample inside [-1, 1]: the int16 clip removes the
+    // downmix overflow that saturates f32 peaks (all buckets would read 1.0).
+    let samples: Vec<f32> = raw
+        .chunks_exact(2)
+        .map(|chunk| i16::from_le_bytes([chunk[0], chunk[1]]) as f32 / 32768.0)
+        .collect();
+
+    // RMS per bucket instead of the sample peak: a single loud transient
+    // (a click, a beep) would otherwise flatten the whole envelope.
+    let per_bucket = (samples.len() / BUCKETS).max(1);
+    let mut peaks = Vec::with_capacity(BUCKETS);
+    let mut index = 0;
+    while index < samples.len() && peaks.len() < BUCKETS {
+        let end = (index + per_bucket).min(samples.len());
+        let (sum_squares, count) = samples[index..end].iter().fold(
+            (0.0f32, 0u32),
+            |(sum, count), sample| {
+                if sample.is_finite() {
+                    (sum + sample * sample, count + 1)
+                } else {
+                    (sum, count)
+                }
+            },
+        );
+        let rms = if count > 0 {
+            (sum_squares / count as f32).sqrt().min(1.0)
+        } else {
+            0.0
+        };
+        peaks.push(rms);
+        index = end;
+    }
+    Ok(peaks)
+}

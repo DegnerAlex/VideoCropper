@@ -45,7 +45,6 @@ services:
       - GDK_BACKEND=x11
       - RUST_BACKTRACE=full
       - DISPLAY=${DISPLAY}
-      - WEBKIT_DISABLE_COMPOSITING_MODE=1
       - WEBKIT_DEBUG=1
       - CI=true
       - NVIDIA_VISIBLE_DEVICES=all

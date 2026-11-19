@@ -32,6 +32,7 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             app_ready,
+            media::audio_waveform,
             media::open_video,
             media::snapshot_video,
             media::export_video

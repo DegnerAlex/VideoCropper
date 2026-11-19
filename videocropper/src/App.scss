@@ -705,3 +705,16 @@ $playhead: #ff4d4f;
     padding: 1.75rem 2rem;
   }
 }
+
+.preview-stage .pixi-host {
+  position: absolute;
+  inset: 0;
+}
+
+.timeline-waveform {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

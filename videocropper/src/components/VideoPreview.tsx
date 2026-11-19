@@ -13,8 +13,8 @@
 // limitations under the License.
 
 import { Component, createRef } from "preact/compat";
-import type { PointerEvent as ReactPointerEvent } from "preact/compat";
 import { Loader } from "react-bulma-components";
+import { PreviewRenderer, type PixelRect } from "./PreviewRenderer";
 import { clamp } from "./format";
 
 /** Crop rectangle in normalized coordinates (0..1) relative to the frame. */
@@ -75,13 +75,6 @@ export interface VideoPreviewProps {
     onOpenFileDialog: () => void;
 }
 
-interface PixelRect {
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-}
-
 interface VideoPreviewState {
     image: HTMLImageElement | null;
     stageSize: FrameSize;
@@ -131,30 +124,17 @@ function handlePoints(rect: PixelRect): Array<{ handle: Handle; x: number; y: nu
     ];
 }
 
-function drawRoundedRect(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    radius: number,
-) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + w, y, x + w, y + h, radius);
-    ctx.arcTo(x + w, y + h, x, y + h, radius);
-    ctx.arcTo(x, y + h, x, y, radius);
-    ctx.arcTo(x, y, x + w, y, radius);
-    ctx.closePath();
-}
-
 export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState> {
     private stageRef = createRef<HTMLDivElement>();
+    private pixiHostRef = createRef<HTMLDivElement>();
     private canvasRef = createRef<HTMLCanvasElement>();
     private drag: DragState | null = null;
     private latestCrop: CropRect | null = null;
     private lastClick: { time: number; x: number; y: number } | null = null;
     private resizeObserver: ResizeObserver | undefined;
+
+    /** Owns the pixi scene and all painting (see PreviewRenderer.ts). */
+    private preview: PreviewRenderer | null = null;
 
     state: VideoPreviewState = {
         image: null,
@@ -177,8 +157,24 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         this.resizeObserver = new ResizeObserver(measure);
         if (this.stageRef.current) {
             this.resizeObserver.observe(this.stageRef.current);
+
+            // Pointer handling stays on the DOM element so the interaction
+            // logic is independent of the renderer underneath.
+            const stage = this.stageRef.current;
+            stage.addEventListener("pointerdown", this.handlePointerDown);
+            stage.addEventListener("pointermove", this.handlePointerMove);
+            stage.addEventListener("pointerup", this.finishDrag);
+            stage.addEventListener("pointercancel", this.cancelDrag);
         }
 
+        const host = this.pixiHostRef.current ?? this.stageRef.current;
+        if (host) {
+            this.preview = new PreviewRenderer();
+            this.preview.mount(host, () => {
+                this.canvasRef.current = this.preview?.canvas ?? null;
+                this.draw();
+            });
+        }
         this.draw();
     }
 
@@ -194,6 +190,13 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
 
     componentWillUnmount(): void {
         this.resizeObserver?.disconnect();
+        const stage = this.stageRef.current;
+        stage?.removeEventListener("pointerdown", this.handlePointerDown);
+        stage?.removeEventListener("pointermove", this.handlePointerMove);
+        stage?.removeEventListener("pointerup", this.finishDrag);
+        stage?.removeEventListener("pointercancel", this.cancelDrag);
+        this.preview?.destroy();
+        this.preview = null;
     }
 
     /** Letterboxed video area inside the canvas. */
@@ -251,6 +254,10 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         }
 
         const image = new Image();
+        // WebGL (pixi) can only upload CORS-clean images; without this the
+        // asset-protocol frame would taint the texture (SecurityError) and the
+        // preview would stay black.
+        image.crossOrigin = "anonymous";
         image.onload = () => {
             this.setState({ image });
             this.props.onFrameLoad({
@@ -261,121 +268,37 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         image.src = frameUrl;
     }
 
-    /** Paints the frame and the crop overlay into the canvas. */
+    /** Pushes the current state into the pixi renderer. */
     private draw(): void {
-        const canvas = this.canvasRef.current;
+        const preview = this.preview;
         const { stageSize } = this.state;
-        if (!canvas || stageSize.width < 1 || stageSize.height < 1) {
-            return;
-        }
+        if (!preview) return;
 
-        const dpr = Math.max(1, window.devicePixelRatio || 1);
-        const backingWidth = Math.round(stageSize.width * dpr);
-        const backingHeight = Math.round(stageSize.height * dpr);
+        preview.resize(stageSize.width, stageSize.height);
 
-        if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
-            canvas.width = backingWidth;
-            canvas.height = backingHeight;
-        }
-
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, stageSize.width, stageSize.height);
-
-        const { crop } = this.props;
         const videoRect = this.videoRect;
         const image = this.state.image;
-        if (!image || !videoRect) {
-            return;
+        const { crop } = this.props;
+
+        let cropRect: PixelRect | null = null;
+        if (videoRect && crop && crop.width > 0 && crop.height > 0) {
+            cropRect = {
+                x: videoRect.x + crop.x * videoRect.w,
+                y: videoRect.y + crop.y * videoRect.h,
+                w: crop.width * videoRect.w,
+                h: crop.height * videoRect.h,
+            };
         }
 
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(image, videoRect.x, videoRect.y, videoRect.w, videoRect.h);
+        const showHint = Boolean(videoRect && image && !cropRect);
+        const hint = showHint
+            ? "Drag with the mouse to select the area that stays in frame"
+            : null;
 
-        if (!crop || crop.width <= 0 || crop.height <= 0) {
-            // Hint pill for an untouched frame. It sits above the middle so a
-            // loading spinner (drawn at the center) appears right below the
-            // text instead of covering it.
-            const text = "Drag with the mouse to select the area that stays in frame";
-            ctx.font = "500 12px Inter, system-ui, sans-serif";
-            const textWidth = ctx.measureText(text).width;
-            const boxWidth = textWidth + 24;
-            const boxHeight = 30;
-            const boxX = videoRect.x + (videoRect.w - boxWidth) / 2;
-            const boxY = videoRect.y + (videoRect.h - boxHeight) / 2 - 44;
-
-            ctx.fillStyle = "rgba(6, 8, 12, 0.66)";
-            drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 8);
-            ctx.fill();
-            ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
-            ctx.textBaseline = "middle";
-            ctx.fillText(text, boxX + 12, boxY + boxHeight / 2 + 0.5);
-            return;
-        }
-
-        const rect: PixelRect = {
-            x: videoRect.x + crop.x * videoRect.w,
-            y: videoRect.y + crop.y * videoRect.h,
-            w: crop.width * videoRect.w,
-            h: crop.height * videoRect.h,
-        };
-
-        // Dim the frame outside of the selection (letterbox stays black).
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(videoRect.x, videoRect.y, videoRect.w, videoRect.h);
-        ctx.rect(rect.x, rect.y, rect.w, rect.h);
-        ctx.fillStyle = "rgba(5, 7, 11, 0.62)";
-        ctx.fill("evenodd");
-        ctx.restore();
-
-        // Rule-of-thirds grid.
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (const fraction of [1 / 3, 2 / 3]) {
-            ctx.moveTo(rect.x + rect.w * fraction, rect.y);
-            ctx.lineTo(rect.x + rect.w * fraction, rect.y + rect.h);
-            ctx.moveTo(rect.x, rect.y + rect.h * fraction);
-            ctx.lineTo(rect.x + rect.w, rect.y + rect.h * fraction);
-        }
-        ctx.stroke();
-
-        // Selection border.
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
-
-        // Handles.
-        for (const point of handlePoints(rect)) {
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(point.x - 5.5, point.y - 5.5, 11, 11);
-            ctx.strokeStyle = "rgba(0, 0, 0, 0.4)";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(point.x - 5.5, point.y - 5.5, 11, 11);
-        }
-
-        // Size badge.
-        const cropPixels = this.cropPixels;
-        if (cropPixels) {
-            const text = `${cropPixels.width} × ${cropPixels.height}`;
-            ctx.font = "600 11px Inter, system-ui, sans-serif";
-            const textWidth = ctx.measureText(text).width;
-            const boxWidth = textWidth + 12;
-            const boxHeight = 20;
-            const boxX = rect.x + 6;
-            const boxY = rect.y + 6;
-
-            ctx.fillStyle = "rgba(0, 0, 0, 0.68)";
-            drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 4);
-            ctx.fill();
-            ctx.fillStyle = "#ffffff";
-            ctx.textBaseline = "middle";
-            ctx.fillText(text, boxX + 6, boxY + boxHeight / 2 + 0.5);
-        }
+        preview.render(
+            { image: videoRect ? image : null, rect: videoRect },
+            { crop: cropRect, cropPixels: this.cropPixels, hint },
+        );
     }
 
     /** Maps a pointer position to normalized frame coordinates. */
@@ -555,7 +478,7 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         });
     }
 
-    private handlePointerDown = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    private handlePointerDown = (event: PointerEvent) => {
         if (event.button !== 0 || !this.videoRect) return;
 
         const point = this.pointFromEvent(event.clientX, event.clientY);
@@ -581,14 +504,14 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         }
 
         try {
-            event.currentTarget.setPointerCapture(event.pointerId);
+            (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
         } catch {
             // Pointer capture is unavailable for synthetic events.
         }
         event.preventDefault();
     };
 
-    private handlePointerMove = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    private handlePointerMove = (event: PointerEvent) => {
         const drag = this.drag;
         const point = this.pointFromEvent(event.clientX, event.clientY);
 
@@ -696,12 +619,13 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         this.props.onCropChange(next);
     };
 
-    private finishDrag = (event: ReactPointerEvent<HTMLCanvasElement>) => {
+    private finishDrag = (event: PointerEvent) => {
         const drag = this.drag;
         this.drag = null;
 
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
+        const target = event.currentTarget as HTMLElement | null;
+        if (target?.hasPointerCapture(event.pointerId)) {
+            target.releasePointerCapture(event.pointerId);
         }
 
         // Manual double-click detection: canceling pointerdown suppresses the
@@ -761,15 +685,7 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
 
         return (
             <div className="preview-stage" ref={this.stageRef}>
-                <canvas
-                    ref={this.canvasRef}
-                    className="preview-canvas"
-                    onPointerDown={this.handlePointerDown}
-                    onPointerMove={this.handlePointerMove}
-                    onPointerUp={this.finishDrag}
-                    onPointerCancel={this.cancelDrag}
-                />
-
+                <div className="pixi-host" ref={this.pixiHostRef} />
                 {note && (
                     <div className="preview-note">
                         {note === "Extracting frame…" && <Loader className="frame-spinner" />}

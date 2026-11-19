@@ -11,9 +11,9 @@ TypeScript. Everything runs locally — no uploads, no external services.
 
 ### Preview
 
-- The canvas preview renders frames extracted with **FFmpeg** (a bundled
-  sidecar binary), so playback works for any codec — no system player codecs
-  are required.
+- The preview is rendered on the GPU with **pixi.js** and shows frames
+  extracted with **FFmpeg** (a bundled sidecar binary), so playback works for
+  any codec — no system player codecs are required.
 - The preview follows the timeline: scrubbing the playhead, dragging a trim
   handle or stepping frames immediately shows the corresponding frame.
 - When a selected handle is active, the preview tracks that handle; when the
@@ -25,6 +25,9 @@ TypeScript. Everything runs locally — no uploads, no external services.
 
 ### Timeline and trimming
 
+- An **audio waveform** (RMS envelope, normalized and sqrt-scaled) is drawn
+  behind the selection when the video contains an audio track; files without
+  audio simply show the bare timeline.
 - Select the in/out range by dragging the **start/end handles**, or move the
   whole selection as a block (the drag threshold distinguishes a click-to-seek
   from a move).
@@ -137,7 +140,9 @@ Frontend:
   commands, events, webview drag & drop, asset protocol for frame images
 - [@tauri-apps/plugin-dialog](https://v2.tauri.app/plugin/dialog/) — open and
   save file dialogs
-- Canvas 2D — the preview and crop overlay are drawn with the canvas API
+- [pixi.js](https://pixijs.com) 8 — GPU rendering of the preview: frame
+  sprite, crop overlay (dimming, rule-of-thirds grid, handles, size badge);
+  the renderer lives in `src/components/PreviewRenderer/`
 
 Backend (Rust):
 
@@ -146,6 +151,6 @@ Backend (Rust):
 - [serde](https://serde.rs) + [serde_json](https://github.com/serde-rs/json) —
   command payloads and ffprobe output parsing
 - [FFmpeg](https://ffmpeg.org) / FFprobe — bundled sidecar binaries for frame
-  extraction, metadata probing and export
+  extraction, metadata probing, export and audio waveform extraction
 - [wry](https://github.com/tauri-apps/wry) 0.57 — locally patched under
   `src-tauri/patches/wry` to fix Linux drag & drop delivery

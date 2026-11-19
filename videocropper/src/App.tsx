@@ -163,6 +163,8 @@ interface AppState {
     crop: CropRect | null;
     frameUrl: string | null;
     frameLoading: boolean;
+    /** Peak amplitudes for the timeline audio track (empty = no audio). */
+    waveform: number[];
     /** Transient messages; the newest one is rendered first. */
     notifications: NotificationItem[];
     /** Timeline handle grabbed by the pointer and driven from the keyboard. */
@@ -190,6 +192,7 @@ class App extends Component<Record<string, never>, AppState> {
         crop: null,
         frameUrl: null,
         frameLoading: false,
+        waveform: [],
         notifications: [],
         activeHandle: null,
         keepSettings: true,
@@ -354,6 +357,7 @@ class App extends Component<Record<string, never>, AppState> {
             crop: resolved.crop,
             frameSize: { width: next.width, height: next.height },
             frameUrl: null,
+            waveform: [],
             activeHandle: null,
             notifications: [],
         });
@@ -363,6 +367,7 @@ class App extends Component<Record<string, never>, AppState> {
         try {
             const meta = await invoke<VideoMeta>("open_video", { path });
             this.attachVideo(meta);
+            this.loadWaveform(path);
 
             if (meta.probeError) {
                 this.notify("warning", `ffprobe: ${meta.probeError}`);
@@ -371,6 +376,22 @@ class App extends Component<Record<string, never>, AppState> {
             this.notify("danger", describeError(cause));
         }
     };
+
+    /** Extracts the audio peak envelope for the timeline; silently skipped
+     *  when the video has no audio track. */
+    private loadWaveform(path: string): void {
+        void invoke<number[]>("audio_waveform", { path })
+            .then((waveform) => {
+                if (this.state.video?.path === path) {
+                    this.setState({ waveform: waveform ?? [] });
+                }
+            })
+            .catch(() => {
+                if (this.state.video?.path === path) {
+                    this.setState({ waveform: [] });
+                }
+            });
+    }
 
     private handleFileDrop = ({ paths, files }: FileDropPayload): void => {
         if (paths.length > 0) {
@@ -677,6 +698,7 @@ class App extends Component<Record<string, never>, AppState> {
                             typeof saved.currentTime === "number" ? saved.currentTime : 0,
                         crop: savedCrop,
                     });
+                    this.loadWaveform(meta.path);
                 } catch (cause) {
                     this.notify(
                         "warning",
@@ -895,6 +917,7 @@ class App extends Component<Record<string, never>, AppState> {
                             />
 
                             <Timeline
+                                waveform={this.state.waveform}
                                 duration={this.state.duration}
                                 currentTime={this.state.currentTime}
                                 range={this.state.range}

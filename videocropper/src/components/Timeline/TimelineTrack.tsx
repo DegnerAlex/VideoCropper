@@ -48,6 +48,8 @@ const DRAG_THRESHOLD = 3;
 const TICK_STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600];
 
 export interface TimelineTrackProps {
+    /** Peak amplitudes of the audio track (empty = no audio). */
+    waveform: number[];
     duration: number;
     currentTime: number;
     range: TimeRange;
@@ -64,7 +66,8 @@ interface Tooltip {
 }
 
 interface TimelineTrackState {
-    tooltips: Tooltip[];
+    /** The control currently under the pointer (drives the tooltips). */
+    dragHandle: "start" | "end" | "region" | null;
     /** True while the playhead is being dragged (enlarged head). */
     playheadDragging: boolean;
 }
@@ -73,10 +76,11 @@ interface TimelineTrackState {
  * time tooltips shown while dragging. */
 export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackState> {
     private trackRef = createRef<HTMLDivElement>();
+    private waveformRef = createRef<HTMLCanvasElement>();
     private drag: DragState | null = null;
 
     state: TimelineTrackState = {
-        tooltips: [],
+        dragHandle: null,
         playheadDragging: false,
     };
 
@@ -87,15 +91,29 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
 
     private get activeTooltips(): Tooltip[] {
         const { activeHandle, range, currentTime } = this.props;
+        const { dragHandle, playheadDragging } = this.state;
 
+        if (dragHandle === "start") {
+            return [{ time: range.start, left: clamp(this.percent(range.start), 3, 97) }];
+        }
+        if (dragHandle === "end") {
+            return [{ time: range.end, left: clamp(this.percent(range.end), 3, 97) }];
+        }
+        if (dragHandle === "region") {
+            // Both edges of the moving selection show their time.
+            return [
+                { time: range.start, left: clamp(this.percent(range.start), 3, 97) },
+                { time: range.end, left: clamp(this.percent(range.end), 3, 97) },
+            ];
+        }
+        if (playheadDragging) {
+            return [{ time: currentTime, left: clamp(this.percent(currentTime), 3, 97) }];
+        }
         if (activeHandle === "start") {
             return [{ time: range.start, left: clamp(this.percent(range.start), 3, 97) }];
         }
         if (activeHandle === "end") {
             return [{ time: range.end, left: clamp(this.percent(range.end), 3, 97) }];
-        }
-        if (activeHandle === "playhead") {
-            return [{ time: currentTime, left: clamp(this.percent(currentTime), 3, 97) }];
         }
         return [];
     }
@@ -123,13 +141,6 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
         return clamp((clientX - rect.left) / rect.width, 0, 1) * duration;
     }
 
-    /** Pointer position along the track, in percent (for the tooltip). */
-    private pointerAt(clientX: number): number {
-        const rect = this.trackRef.current?.getBoundingClientRect();
-        if (!rect || rect.width === 0) return 50;
-        return clamp(((clientX - rect.left) / rect.width) * 100, 3, 97);
-    }
-
     private updateRange = (next: TimeRange): void => {
         this.props.onRangeChange({
             start: Math.round(next.start * 1000) / 1000,
@@ -155,13 +166,15 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
             // exactly where it was grabbed.
             const headCenterX = rect.left + (rect.width * this.percent(this.props.currentTime)) / 100;
             this.drag = { kind: "playhead", rect, offsetPx: event.clientX - headCenterX };
-            this.setState({ playheadDragging: true });
+            this.setState({ dragHandle: null, playheadDragging: true });
             this.props.onActiveHandleChange(null);
         } else if (handle === "start") {
             this.drag = { kind: "start", rect };
+            this.setState({ dragHandle: "start" });
             this.props.onActiveHandleChange("start");
         } else if (handle === "end") {
             this.drag = { kind: "end", rect };
+            this.setState({ dragHandle: "end" });
             this.props.onActiveHandleChange("end");
         } else if (target.closest("[data-region]")) {
             this.drag = {
@@ -173,6 +186,7 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
                 startTime: time,
                 moved: false,
             };
+            this.setState({ dragHandle: "region" });
             this.props.onActiveHandleChange(null);
         } else {
             this.drag = { kind: "seek", rect };
@@ -216,13 +230,11 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
             case "start": {
                 const value = clamp(time, 0, Math.max(0, range.end - MIN_RANGE));
                 this.updateRange({ start: value, end: range.end });
-                this.setState({ tooltips: [{ time: value, left: this.pointerAt(event.clientX) }] });
                 break;
             }
             case "end": {
                 const value = clamp(time, Math.min(duration, range.start + MIN_RANGE), duration);
                 this.updateRange({ start: range.start, end: value });
-                this.setState({ tooltips: [{ time: value, left: this.pointerAt(event.clientX) }] });
                 break;
             }
             case "region": {
@@ -232,16 +244,6 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
                 drag.moved = true;
                 const start = clamp(time - drag.offset, 0, Math.max(0, duration - drag.length));
                 this.updateRange({ start, end: start + drag.length });
-                // Both edges of the moving selection show their time.
-                this.setState({
-                    tooltips: [
-                        { time: start, left: clamp(this.percent(start), 3, 97) },
-                        {
-                            time: start + drag.length,
-                            left: clamp(this.percent(start + drag.length), 3, 97),
-                        },
-                    ],
-                });
                 break;
             }
         }
@@ -254,10 +256,7 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
 
         const drag = this.drag;
         this.drag = null;
-        this.setState((state) => ({
-            tooltips: [],
-            playheadDragging: drag?.kind === "playhead" ? false : state.playheadDragging,
-        }));
+        this.setState({ dragHandle: null, playheadDragging: false });
 
         // A click inside the selection (no pointer travel) seeks instead of
         // moving the selection.
@@ -288,12 +287,79 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
         }
     };
 
+    /** Paints the audio peak envelope behind the selection region. */
+    componentDidMount(): void {
+        window.addEventListener("resize", this.drawWaveform);
+        this.drawWaveform();
+    }
+
+    componentDidUpdate(previous: TimelineTrackProps): void {
+        if (
+            previous.waveform !== this.props.waveform ||
+            previous.duration !== this.props.duration
+        ) {
+            this.drawWaveform();
+        }
+    }
+
+    componentWillUnmount(): void {
+        window.removeEventListener("resize", this.drawWaveform);
+    }
+
+    private drawWaveform = (): void => {
+        const canvas = this.waveformRef.current;
+        const track = this.trackRef.current;
+        if (!canvas || !track) return;
+
+        const width = track.clientWidth;
+        const height = track.clientHeight;
+        if (width < 1 || height < 1) return;
+
+        const dpr = Math.max(1, window.devicePixelRatio || 1);
+        const backingWidth = Math.round(width * dpr);
+        const backingHeight = Math.round(height * dpr);
+        if (canvas.width !== backingWidth || canvas.height !== backingHeight) {
+            canvas.width = backingWidth;
+            canvas.height = backingHeight;
+        }
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+
+        const { waveform } = this.props;
+        if (waveform.length === 0) return;
+
+        ctx.fillStyle = "rgba(140, 210, 250, 0.9)";
+        const mid = height / 2;
+
+        // Normalize against a high percentile (one stray spike must not
+        // flatten the envelope) and apply a square-root scale so quiet
+        // passages stay readable — linear scaling hides them entirely.
+        const sorted = [...waveform].sort((a, b) => a - b);
+        const reference =
+            sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.98))] || 0;
+        if (reference <= 0) return;
+        const fullBar = height * 0.24;
+
+        for (let x = 0; x < width; x += 2) {
+            const index = Math.min(
+                waveform.length - 1,
+                Math.floor((x / width) * waveform.length),
+            );
+            const amplitude = Math.min(1, (waveform[index] ?? 0) / reference);
+            const bar = Math.max(1, Math.sqrt(amplitude) * fullBar);
+            ctx.fillRect(x, mid - bar, 1.4, bar * 2);
+        }
+    };
+
     render() {
         const { duration, currentTime, range, activeHandle } = this.props;
         const { step, ticks } = this.ticks;
 
         // A selected (not currently dragged) handle keeps its tooltip visible.
-        const tooltips = this.state.tooltips.length > 0 ? this.state.tooltips : this.activeTooltips;
+        const tooltips = this.activeTooltips;
 
         return (
             <div
@@ -313,6 +379,7 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
                 onPointerCancel={this.finishDrag}
                 onKeyDown={this.handleKeyDown}
             >
+                <canvas className="timeline-waveform" ref={this.waveformRef} />
                 <div className="timeline-ruler">
                     {ticks.map((time, index) => (
                         <span
@@ -384,7 +451,7 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
 
                 {tooltips.map((tip, index) => (
                     <span
-                        key={`${tip.time}-${index}`}
+                        key={`tooltip-${index}`}
                         className="timeline-tooltip"
                         style={{ left: `${tip.left}%` }}
                     >

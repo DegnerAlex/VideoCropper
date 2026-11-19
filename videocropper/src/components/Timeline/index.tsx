@@ -21,6 +21,8 @@ import type { TimeRange } from "./TimeRange";
 export type { TimeRange } from "./TimeRange";
 
 export interface TimelineProps {
+    /** Peak amplitudes of the audio track (empty = no audio). */
+    waveform: number[];
     duration: number;
     currentTime: number;
     range: TimeRange;
@@ -55,6 +57,7 @@ export interface TimelineProps {
 export class Timeline extends Component<TimelineProps> {
     render() {
         const {
+            waveform,
             duration,
             currentTime,
             range,
@@ -69,6 +72,7 @@ export class Timeline extends Component<TimelineProps> {
             <section className="timeline-block">
                 <div className="timeline-card">
                     <TimelineTrack
+                        waveform={waveform}
                         duration={duration}
                         currentTime={currentTime}
                         range={range}
