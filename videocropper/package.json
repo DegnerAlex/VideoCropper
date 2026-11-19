@@ -1,6 +1,6 @@
 {
-  "name": "videocutter",
-  "productName": "Video Cutter",
+  "name": "videocropper",
+  "productName": "Video Cropper",
   "private": true,
   "version": "0.0.1",
   "type": "module",

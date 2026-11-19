@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Video Cutter",
+  "productName": "Video Cropper",
   "version": "0.1.0",
-  "identifier": "me.ergofox.videocutter",
+  "identifier": "me.ergofox.videocropper",
   "build": {
     "devUrl": "http://localhost:1420",
     "beforeBuildCommand": "pnpm build",
@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "Video Cutter",
+        "title": "Video Cropper",
         "width": 1280,
         "height": 860,
         "minWidth": 960,
@@ -30,7 +30,10 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "externalBin": ["binaries/ffmpeg", "binaries/ffprobe"],
+    "externalBin": [
+      "binaries/ffmpeg",
+      "binaries/ffprobe"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

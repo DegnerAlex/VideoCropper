@@ -26,17 +26,17 @@ services:
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      - ./videocutter/:/srv:cached
+      - ./videocropper/:/srv:cached
     ports:
       - "1420:1420"
     command: sh -c "npm run dev"
     network_mode: host
 
-  videocutter:
+  videocropper:
     restart: "no"
     build:
       context: ./
-      dockerfile: docker/videocutter/Dockerfile
+      dockerfile: docker/videocropper/Dockerfile
     environment:
       - XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR}
       - WAYLAND_DISPLAY=${WAYLAND_DISPLAY}
@@ -62,7 +62,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:${XDG_RUNTIME_DIR:-/run/user/1000}/${WAYLAND_DISPLAY:-wayland-0}:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
-      - ./videocutter:/srv:cached
+      - ./videocropper:/srv:cached
       - ~/.local/share/:/root/.local/share/
       - /home/sensey/:/home/sensey/
       # Persistent cargo registry: gen/android references crates by absolute
