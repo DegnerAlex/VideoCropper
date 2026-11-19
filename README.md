@@ -1,4 +1,4 @@
-# Video Cutter
+# Video Cropper
 
 A desktop video trimming and cropping tool built with Tauri 2, React 19 and
 TypeScript. Everything runs locally — no uploads, no external services.
