@@ -336,14 +336,16 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         ctx.drawImage(image, videoRect.x, videoRect.y, videoRect.w, videoRect.h);
 
         if (!crop || crop.width <= 0 || crop.height <= 0) {
-            // Hint pill for an untouched frame.
+            // Hint pill for an untouched frame. It sits above the middle so a
+            // loading spinner (drawn at the center) appears right below the
+            // text instead of covering it.
             const text = "Drag with the mouse to select the area that stays in frame";
             ctx.font = "500 12px Inter, system-ui, sans-serif";
             const textWidth = ctx.measureText(text).width;
             const boxWidth = textWidth + 24;
             const boxHeight = 30;
             const boxX = videoRect.x + (videoRect.w - boxWidth) / 2;
-            const boxY = videoRect.y + (videoRect.h - boxHeight) / 2;
+            const boxY = videoRect.y + (videoRect.h - boxHeight) / 2 - 44;
 
             ctx.fillStyle = "rgba(6, 8, 12, 0.66)";
             drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 8);

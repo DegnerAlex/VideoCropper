@@ -505,9 +505,6 @@ class App extends Component<Record<string, never>, AppState> {
     };
 
     private handleFileDrop = ({ paths, files }: FileDropPayload): void => {
-        void invoke("dnd_debug", {
-            msg: `handleFileDrop paths=${paths.length} files=${files.length}`,
-        }).catch(() => undefined);
         if (paths.length > 0) {
             void this.openPath(paths[0]);
             return;

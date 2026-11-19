@@ -16,16 +16,10 @@ pub mod media;
 
 use tauri::Manager;
 
-#[tauri::command]
-fn dnd_debug(msg: String) {
-    eprintln!("[dnd-debug] {msg}");
-}
-
 /// Called by the frontend as soon as the splash screen is rendered, to reveal
 /// the hidden window (no blank/white flash on startup).
 #[tauri::command]
 fn app_ready(window: tauri::WebviewWindow) {
-    eprintln!("[app-dnd] window shown via app_ready");
     let _ = window.show();
 }
 
@@ -38,7 +32,6 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             app_ready,
-            dnd_debug,
             media::open_video,
             media::snapshot_video,
             media::export_video
@@ -57,7 +50,6 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::DragDrop(event) = event {
-                eprintln!("[app-dnd] tauri DragDrop event: {:?}", event);
                 // The regular `tauri://drag-drop` event delivery is
                 // unreliable under some setups (XWayland bridging), so drag
                 // and drop is bridged into the webview directly via eval.

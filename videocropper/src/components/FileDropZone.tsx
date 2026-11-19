@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { Component } from "react";
-import { invoke, isTauri } from "@tauri-apps/api/core";
+import { isTauri } from "@tauri-apps/api/core";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 
@@ -39,45 +39,30 @@ type NativeDragDropHandler = Parameters<
  * Inside Tauri this uses the native drag and drop event (HTML5 drag events are
  * intercepted by the webview), which provides absolute paths. In a regular
  * browser it falls back to the HTML5 API, which only exposes `File` objects.
+ *
+ * The Rust side additionally pushes drag state and dropped paths into the
+ * webview through evaluated scripts (see src-tauri/src/lib.rs) because the
+ * `tauri://drag-drop` event delivery can be lost under XWayland.
  */
-interface FileDropZoneState {
-    listener: "pending" | "ok" | "failed";
-    nativeEvents: number;
-    htmlEvents: number;
-}
-
-export class FileDropZone extends Component<FileDropZoneProps, FileDropZoneState> {
+export class FileDropZone extends Component<FileDropZoneProps> {
     private unlisten: UnlistenFn | undefined;
     private disposed = false;
     private depth = 0;
     private lastDropAt = 0;
 
-    state: FileDropZoneState = {
-        listener: "pending",
-        nativeEvents: 0,
-        htmlEvents: 0,
-    };
-
     componentDidMount(): void {
-        if (isTauri()) {            getCurrentWebview()
+        if (isTauri()) {
+            getCurrentWebview()
                 .onDragDropEvent(this.handleNativeEvent)
                 .then((stop) => {
                     if (this.disposed) {
                         stop();
                     } else {
                         this.unlisten = stop;
-                        this.setState({ listener: "ok" });
                     }
-                    void invoke("dnd_debug", { msg: "drag-drop listener registered" }).catch(
-                        () => undefined,
-                    );
                 })
                 .catch((error) => {
                     console.warn("native drag and drop is unavailable", error);
-                    this.setState({ listener: "failed" });
-                    void invoke("dnd_debug", {
-                        msg: `drag-drop listener FAILED: ${String(error)}`,
-                    }).catch(() => undefined);
                 });
         }
 
@@ -88,22 +73,13 @@ export class FileDropZone extends Component<FileDropZoneProps, FileDropZoneState
         window.addEventListener("dragleave", this.handleLeave);
         window.addEventListener("drop", this.handleDrop);
 
-        // Direct bridge from the Rust side (see src-tauri/src/lib.rs): the
-        // `tauri://drag-drop` events can be lost under XWayland, so drag
-        // state and dropped paths are pushed into the webview via evaluated
-        // scripts.
+        // Direct bridge from the Rust side (see src-tauri/src/lib.rs).
         (window as unknown as { __onNativeDragState?: (active: boolean) => void })
             .__onNativeDragState = (active) => {
-            void invoke("dnd_debug", { msg: `eval drag state: ${active}` }).catch(
-                () => undefined,
-            );
             this.props.onDragStateChange(active);
         };
         (window as unknown as { __onNativeDrop?: (paths: string[]) => void })
             .__onNativeDrop = (paths) => {
-            void invoke("dnd_debug", {
-                msg: `eval drop: ${paths.join(", ")}`,
-            }).catch(() => undefined);
             this.props.onDragStateChange(false);
             this.acceptDrop(paths);
         };
@@ -124,39 +100,12 @@ export class FileDropZone extends Component<FileDropZoneProps, FileDropZoneState
         window.removeEventListener("drop", this.handleDrop);
     }
 
-    render() {
-        // TEMP DEBUG: native/HTML5 drag-drop diagnostics.
-        const { listener, nativeEvents, htmlEvents } = this.state;
-        return (
-            <div
-                style={{
-                    position: "fixed",
-                    top: 4,
-                    left: 4,
-                    zIndex: 9999,
-                    padding: "2px 6px",
-                    borderRadius: 4,
-                    background: "rgba(0, 0, 0, 0.75)",
-                    color: "#fff",
-                    font: "10px monospace",
-                    pointerEvents: "none",
-                }}
-            >
-                TAURI:{isTauri() ? "Y" : "N"} L:{listener} N:{nativeEvents} H:{htmlEvents}
-            </div>
-        );
+    render(): null {
+        return null;
     }
 
     private handleNativeEvent: NativeDragDropHandler = (event) => {
         const payload = event.payload;
-        this.setState((state) => ({ nativeEvents: state.nativeEvents + 1 }));
-        void invoke("dnd_debug", {
-            msg: `native event type=${payload.type} paths=${JSON.stringify(
-                payload.type === "drop" || payload.type === "enter"
-                    ? payload.paths
-                    : null,
-            )}`,
-        }).catch(() => undefined);
 
         if (payload.type === "enter" || payload.type === "over") {
             this.props.onDragStateChange(true);
@@ -186,7 +135,6 @@ export class FileDropZone extends Component<FileDropZoneProps, FileDropZoneState
         if (!this.hasFiles(event)) return;
         event.preventDefault();
         this.depth += 1;
-        this.setState((state) => ({ htmlEvents: state.htmlEvents + 1 }));
         this.props.onDragStateChange(true);
     };
 

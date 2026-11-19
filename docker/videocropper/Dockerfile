@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ubuntu:26.04
+FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y
 RUN apt install -y libwebkit2gtk-4.1-dev \

@@ -99,16 +99,10 @@ provides FFmpeg/ffprobe for local development.
 
 ## Production builds
 
-Release builds bundle FFmpeg as Tauri sidecar binaries. Prepare them first:
+Build the desktop application with Cargo:
 
 ```bash
-pnpm run sidecars              # or: scripts/prepare-sidecars.sh [target-triple]
-```
-
-Then build the desktop application:
-
-```bash
-pnpm tauri build
+cargo tauri build --bundles appimage
 ```
 
 Artifacts are written to `videocropper/src-tauri/target/release/bundle/`. The
@@ -117,10 +111,17 @@ downloaded sidecar binaries are GPL-licensed (they include x264/x265) — review
 
 ## Download
 
-No releases are published yet. Build the app yourself (see *Production
-builds*). When binaries are released, they will be attached to the project's
-releases page and will require no additional installation — FFmpeg ships
-inside the bundle.
+Grab the latest AppImage from the
+[releases page](https://github.com/DegnerAlex/VideoCropper/releases/latest) —
+it requires no additional installation: FFmpeg ships inside the bundle. Make
+the file executable and run it:
+
+```bash
+chmod +x VideoCropper_*_amd64.AppImage
+./VideoCropper_*_amd64.AppImage
+```
+
+Or build the app yourself (see *Production builds*).
 
 ## Libraries
 
