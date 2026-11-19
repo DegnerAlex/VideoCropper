@@ -3,6 +3,10 @@
 A desktop video trimming and cropping tool built with Tauri 2, React 19 and
 TypeScript. Everything runs locally — no uploads, no external services.
 
+
+<img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/3272c38c-15b7-4e1e-98c0-82508ce30581" />
+
+
 ## Features
 
 ### Preview
