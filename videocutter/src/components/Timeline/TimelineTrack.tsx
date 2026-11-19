@@ -17,13 +17,21 @@ import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerE
 import { clamp, formatTick, formatTime } from "../format";
 import type { TimeRange } from "./TimeRange";
 
+type PointerLike = { clientX: number };
+
+interface DragRect {
+    left: number;
+    width: number;
+}
+
 type DragState =
-    | { kind: "seek" }
-    | { kind: "playhead"; /** Pointer offset from the head center, in px. */ offsetPx: number }
-    | { kind: "start" }
-    | { kind: "end" }
+    | { kind: "seek"; rect: DragRect }
+    | { kind: "playhead"; rect: DragRect; offsetPx: number }
+    | { kind: "start"; rect: DragRect }
+    | { kind: "end"; rect: DragRect }
     | {
           kind: "region";
+          rect: DragRect;
           offset: number;
           length: number;
           startX: number;
@@ -44,8 +52,8 @@ export interface TimelineTrackProps {
     currentTime: number;
     range: TimeRange;
     /** Currently keyboard-selected handle; `null` when none is selected. */
-    activeHandle: "start" | "end" | "playhead" | null;
-    onActiveHandleChange: (handle: "start" | "end" | "playhead" | null) => void;
+    activeHandle: "start" | "end" | null;
+    onActiveHandleChange: (handle: "start" | "end" | null) => void;
     onSeek: (time: number) => void;
     onRangeChange: (range: TimeRange) => void;
 }
@@ -115,11 +123,14 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
 
                 <div
                     className="timeline-dim"
-                    style={{ left: 0, width: `${this.percent(range.start)}%` }}
+                    style={{
+                        left: -23,
+                        width: `calc(23px + ${this.percent(range.start)}%)`,
+                    }}
                 />
                 <div
                     className="timeline-dim"
-                    style={{ left: `${this.percent(range.end)}%`, right: 0 }}
+                    style={{ left: `${this.percent(range.end)}%`, right: -23 }}
                 />
 
                 <div
@@ -157,8 +168,7 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
                 <div
                     className={
                         "timeline-playhead-handle" +
-                        (this.state.playheadDragging ? " is-dragging" : "") +
-                        (activeHandle === "playhead" ? " is-active" : "")
+                        (this.state.playheadDragging ? " is-dragging" : "")
                     }
                     style={{ left: `${this.percent(currentTime)}%` }}
                     data-handle="playhead"
@@ -240,27 +250,30 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
 
         const target = event.target as HTMLElement;
         const handle = target.closest<HTMLElement>("[data-handle]")?.dataset.handle;
+        const trackRect = this.trackRef.current?.getBoundingClientRect();
+        const rect: DragRect = {
+            left: trackRect?.left ?? 0,
+            width: trackRect?.width ?? 1,
+        };
         const time = this.timeAt(event.clientX);
 
         if (handle === "playhead") {
             // Preserve the grab point: the head stays attached to the pointer
             // exactly where it was grabbed.
-            const rect = this.trackRef.current?.getBoundingClientRect();
-            const headCenterX = rect
-                ? rect.left + (rect.width * this.percent(this.props.currentTime)) / 100
-                : event.clientX;
-            this.drag = { kind: "playhead", offsetPx: event.clientX - headCenterX };
+            const headCenterX = rect.left + (rect.width * this.percent(this.props.currentTime)) / 100;
+            this.drag = { kind: "playhead", rect, offsetPx: event.clientX - headCenterX };
             this.setState({ playheadDragging: true });
-            this.props.onActiveHandleChange("playhead");
+            this.props.onActiveHandleChange(null);
         } else if (handle === "start") {
-            this.drag = { kind: "start" };
+            this.drag = { kind: "start", rect };
             this.props.onActiveHandleChange("start");
         } else if (handle === "end") {
-            this.drag = { kind: "end" };
+            this.drag = { kind: "end", rect };
             this.props.onActiveHandleChange("end");
         } else if (target.closest("[data-region]")) {
             this.drag = {
                 kind: "region",
+                rect,
                 offset: time - range.start,
                 length: range.end - range.start,
                 startX: event.clientX,
@@ -269,32 +282,43 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
             };
             this.props.onActiveHandleChange(null);
         } else {
-            this.drag = { kind: "seek" };
+            this.drag = { kind: "seek", rect };
             this.props.onActiveHandleChange(null);
             this.props.onSeek(time);
         }
 
-        try {
-            event.currentTarget.setPointerCapture(event.pointerId);
-        } catch {
-            // Pointer capture is unavailable for synthetic events.
-        }
+        // Drag listeners live on the document: WebKitGTK does not deliver
+        // pointermove to React's delegated handler while the button is held.
+        document.addEventListener("pointermove", this.handlePointerMove);
+        document.addEventListener("pointerup", this.finishDrag);
+        document.addEventListener("pointercancel", this.finishDrag);
         event.preventDefault();
     };
 
-    private handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    private handlePointerMove = (event: PointerLike): void => {
         const drag = this.drag;
         if (!drag) return;
 
         const { duration, range } = this.props;
-        const time = this.timeAt(event.clientX);
+        const time = clamp(
+            (event.clientX - drag.rect.left) / Math.max(1, drag.rect.width),
+            0,
+            1,
+        ) * duration;
 
         switch (drag.kind) {
             case "seek":
                 this.props.onSeek(time);
                 break;
             case "playhead":
-                this.props.onSeek(this.timeAt(event.clientX - drag.offsetPx));
+                this.props.onSeek(
+                    clamp(
+                        (event.clientX - drag.offsetPx - drag.rect.left) /
+                            Math.max(1, drag.rect.width),
+                        0,
+                        1,
+                    ) * duration,
+                );
                 break;
             case "start": {
                 const value = clamp(time, 0, Math.max(0, range.end - MIN_RANGE));
@@ -330,7 +354,11 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
         }
     };
 
-    private finishDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    private finishDrag = (_event: PointerLike): void => {
+        document.removeEventListener("pointermove", this.handlePointerMove);
+        document.removeEventListener("pointerup", this.finishDrag);
+        document.removeEventListener("pointercancel", this.finishDrag);
+
         const drag = this.drag;
         this.drag = null;
         this.setState((state) => ({
@@ -344,9 +372,6 @@ export class TimelineTrack extends Component<TimelineTrackProps, TimelineTrackSt
             this.props.onSeek(drag.startTime);
         }
 
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-        }
     };
 
     private handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {

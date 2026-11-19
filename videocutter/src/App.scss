@@ -23,7 +23,7 @@ $font-family-base: "Noto Sans", "Oxygen-Sans", Ubuntu, Cantarell, "Helvetica Neu
   $primary: #3daee9,
   $link: #2980b9,
   $info: #3daee9,
-  $success: #11d116,
+  $success: #27ae60,
   $warning: #f67400,
   $danger: #ed1515,
   $family-primary: $font-family-base,
@@ -238,8 +238,19 @@ $playhead: #ff4d4f;
 .timeline-card {
   display: flex;
   flex-direction: column;
-  padding: 0;
-  background: #232629;
+  /* Keeps the handles clear of the window-edge resize zones. The film
+     background lives on the card so the padding strips blend seamlessly
+     with the track. */
+  padding: 0 23px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 20px
+    ),
+    #232629;
 }
 
 .controls-bar {
@@ -258,6 +269,13 @@ $playhead: #ff4d4f;
   /* Stretch so the export button can stick to the right edge. */
   align-self: stretch;
 
+  .aspect-presets {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-left: 0.9rem;
+  }
+
   .open-button {
     margin-left: auto;
   }
@@ -270,9 +288,23 @@ $playhead: #ff4d4f;
     color: var(--bulma-text-strong);
   }
 
+  .aspect-preset {
+    height: 26px;
+    padding: 0 0.4rem;
+    font-size: 0.72rem;
+  }
+
   .clear-button[disabled] {
     opacity: 0.55;
   }
+}
+
+// Pin label -------------------------------------------------------------------
+
+.pin-label {
+  font-size: 0.78rem;
+  color: var(--bulma-text-weak);
+  user-select: none;
 }
 
 // Plasma-style switch ---------------------------------------------------------
@@ -285,7 +317,6 @@ $playhead: #ff4d4f;
   font-size: 0.78rem;
   color: var(--bulma-text);
   user-select: none;
-
   input {
     position: absolute;
     width: 1px;
@@ -360,17 +391,9 @@ $playhead: #ff4d4f;
 .timeline-track {
   position: relative;
   height: 64px;
-  border-radius: 8px;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.035) 0,
-      rgba(255, 255, 255, 0.035) 1px,
-      transparent 1px,
-      transparent 20px
-    ),
-    #232629;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0;
+  background: transparent;
+  border: none;
   cursor: pointer;
   touch-action: none;
   user-select: none;
@@ -384,8 +407,9 @@ $playhead: #ff4d4f;
 .timeline-ruler {
   position: absolute;
   inset: 0;
+  z-index: 2;
   pointer-events: none;
-  color: rgba(255, 255, 255, 0.55);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 0.62rem;
   font-variant-numeric: tabular-nums;
 }
@@ -460,8 +484,9 @@ $playhead: #ff4d4f;
   cursor: ew-resize;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
 
-  /* Invisible grab area: keeps the handle easy to catch at the window edges
-     while staying visually thin. */
+  /* Invisible grab area: extends INWARD from the window edges so the edge
+     handles stay clear of the client-side resize zones while staying
+     visually thin. */
   &::before {
     content: "";
     position: absolute;
@@ -469,6 +494,16 @@ $playhead: #ff4d4f;
     bottom: 0;
     left: -6px;
     right: -6px;
+  }
+
+  &.is-start::before {
+    left: -2px;
+    right: -16px;
+  }
+
+  &.is-end::before {
+    left: -16px;
+    right: -2px;
   }
 
   &::after {

@@ -17,6 +17,17 @@ import { Button } from "react-bulma-components";
 import { FiDownload, FiFolder, FiTrash2 } from "react-icons/fi";
 import { Switch } from "../Switch";
 
+/** Common crop aspect presets (w/h in frame pixels). */
+export const ASPECT_PRESETS: Array<{ label: string; value: number | null }> = [
+    { label: "Free", value: null },
+    { label: "16:9", value: 16 / 9 },
+    { label: "9:16", value: 9 / 16 },
+    { label: "4:3", value: 4 / 3 },
+    { label: "3:4", value: 3 / 4 },
+    { label: "1:1", value: 1 },
+    { label: "21:9", value: 21 / 9 },
+];
+
 export interface SessionTogglesProps {
     /** Apply current settings to newly opened videos. */
     keepSettings: boolean;
@@ -29,32 +40,60 @@ export interface SessionTogglesProps {
     onClearSelections: () => void;
     /** Opens the file chooser (defaults to the current file folder). */
     onOpenFile: () => void;
+    /** Locked crop aspect; `null` = free selection. */
+    cropAspect: number | null;
+    onCropAspectChange: (value: number | null) => void;
     /** Export job in progress. */
     exporting: boolean;
     exportProgress: number | null;
     onExport: () => void;
 }
 
-/** Session switches and the clear/export actions. */
+/** Session switches, crop aspect presets and the clear/export actions. */
 export class SessionToggles extends Component<SessionTogglesProps> {
     render() {
         const { keepSettings, rememberVideo, exporting, exportProgress } = this.props;
 
         return (
             <div className="session-toggles">
+                <span className="pin-label">Pin</span>
                 <Switch
                     checked={keepSettings}
-                    label="Remember selections"
+                    label="Selections"
                     title="Apply the current selections (range and crop) to the next opened video"
                     onChange={(value) => this.props.onKeepSettingsChange(value)}
                 />
 
                 <Switch
                     checked={rememberVideo}
-                    label="Remember video"
+                    label="Video"
                     title="Reopen the last processed video on startup (if the file is still in place)"
                     onChange={(value) => this.props.onRememberVideoChange(value)}
                 />
+
+                <div className="aspect-presets">
+                    {ASPECT_PRESETS.map((preset) => (
+                        <Button
+                            key={preset.label}
+                            className="aspect-preset"
+                            size="small"
+                            color={
+                                this.props.cropAspect === preset.value ? "primary" : "light"
+                            }
+                            title={
+                                preset.value === null
+                                    ? "Free selection without an aspect lock"
+                                    : `Lock the crop selection to ${preset.label}`
+                            }
+                            onClick={() =>
+                                this.props.onCropAspectChange(preset.value)
+                            }
+                        >
+                            {preset.label}
+                        </Button>
+                    ))}
+                </div>
+
 
                 <Button
                     className="clear-button"
@@ -66,7 +105,7 @@ export class SessionToggles extends Component<SessionTogglesProps> {
                 >
                     <span className="session-toggle-label">
                         <FiTrash2 />
-                        Clear selections
+                        Clear
                     </span>
                 </Button>
 

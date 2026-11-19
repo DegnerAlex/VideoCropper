@@ -87,6 +87,7 @@ interface SessionState {
     crop: CropRect | null;
     keepSettings?: boolean;
     rememberVideo?: boolean;
+    cropAspect?: number | null;
 }
 
 interface AttachSettings {
@@ -165,11 +166,13 @@ interface AppState {
     /** Transient messages; the newest one is rendered first. */
     notifications: NotificationItem[];
     /** Timeline handle grabbed by the pointer and driven from the keyboard. */
-    activeHandle: "start" | "end" | "playhead" | null;
+    activeHandle: "start" | "end" | null;
     /** Apply current settings to every newly opened video. */
     keepSettings: boolean;
     /** Reopen the last processed video on startup. */
     rememberVideo: boolean;
+    /** Locked crop aspect; `null` = free selection. */
+    cropAspect: number | null;
     isDragging: boolean;
     /** Export job state. */
     exporting: boolean;
@@ -191,6 +194,7 @@ class App extends Component<Record<string, never>, AppState> {
         activeHandle: null,
         keepSettings: true,
         rememberVideo: true,
+        cropAspect: null,
         isDragging: false,
         exporting: false,
         exportProgress: null,
@@ -240,6 +244,7 @@ class App extends Component<Record<string, never>, AppState> {
             previousState.range !== state.range ||
             previousState.currentTime !== state.currentTime ||
             previousState.crop !== state.crop ||
+            previousState.cropAspect !== state.cropAspect ||
             previousState.keepSettings !== state.keepSettings ||
             previousState.rememberVideo !== state.rememberVideo
         ) {
@@ -331,6 +336,7 @@ class App extends Component<Record<string, never>, AppState> {
                                 frameLoading={this.state.frameLoading}
                                 frameSize={this.state.frameSize}
                                 crop={this.state.crop}
+                                cropAspect={this.state.cropAspect}
                                 onCropChange={(crop) => this.setState({ crop })}
                                 onFrameLoad={this.handleFrameLoad}
                                 onOpenFileDialog={() =>
@@ -352,6 +358,8 @@ class App extends Component<Record<string, never>, AppState> {
                                 onKeepSettingsChange={(keepSettings) =>
                                     this.setState({ keepSettings })
                                 }
+                                cropAspect={this.state.cropAspect}
+                                onCropAspectChange={this.handleCropAspectChange}
                                 rememberVideo={this.state.rememberVideo}
                                 onRememberVideoChange={(rememberVideo) =>
                                     this.setState({ rememberVideo })
@@ -597,6 +605,45 @@ class App extends Component<Record<string, never>, AppState> {
 
         return `${base}${parts.length > 0 ? `_${parts.join("_")}` : "_export"}${extension}`;
     }
+
+    /** Creates the largest crop frame of the given aspect, centered in the
+     * video frame (maximizing the captured picture). */
+    private handleCropAspectChange = (aspect: number | null): void => {
+        const { frameSize } = this.state;
+        this.setState({ cropAspect: aspect });
+
+        if (aspect === null || frameSize.width <= 0 || frameSize.height <= 0) {
+            return;
+        }
+
+        let w: number;
+        let h: number;
+        if (frameSize.width / frameSize.height > aspect) {
+            // The frame is wider: the crop height fills the frame.
+            h = frameSize.height;
+            w = h * aspect;
+        } else {
+            // The frame is taller: the crop width fills the frame.
+            w = frameSize.width;
+            h = w / aspect;
+        }
+
+        // Even dimensions.
+        w = Math.max(2, Math.round(w) & ~1);
+        h = Math.max(2, Math.round(h) & ~1);
+
+        const x = Math.round((frameSize.width - w) / 2);
+        const y = Math.round((frameSize.height - h) / 2);
+
+        this.setState({
+            crop: {
+                x: x / frameSize.width,
+                y: y / frameSize.height,
+                width: w / frameSize.width,
+                height: h / frameSize.height,
+            },
+        });
+    };
 
     /** Clears the crop selection and resets the timeline range. */
     private clearSelections = (): void => {
@@ -850,35 +897,33 @@ class App extends Component<Record<string, never>, AppState> {
                 event.preventDefault();
                 const direction = event.code === "ArrowRight" ? 1 : -1;
 
-                // A selected timeline handle follows the arrows. The playhead
-                // handle moves the playhead itself; the trim handles move the
-                // range edges.
-                if (this.state.activeHandle === "start") {
+                // A selected timeline handle follows the arrows instead of
+                // the playhead.
+                if (this.state.activeHandle) {
                     const delta = direction * step;
-                    this.setState((state) => ({
-                        range: {
-                            start: clamp(
-                                state.range.start + delta,
-                                0,
-                                Math.max(0, state.range.end - MIN_RANGE),
-                            ),
-                            end: state.range.end,
-                        },
-                    }));
-                    return;
-                }
-                if (this.state.activeHandle === "end") {
-                    const delta = direction * step;
-                    this.setState((state) => ({
-                        range: {
-                            start: state.range.start,
-                            end: clamp(
-                                state.range.end + delta,
-                                Math.min(state.duration, state.range.start + MIN_RANGE),
-                                state.duration,
-                            ),
-                        },
-                    }));
+                    this.setState((state) =>
+                        state.activeHandle === "start"
+                            ? {
+                                  range: {
+                                      start: clamp(
+                                          state.range.start + delta,
+                                          0,
+                                          Math.max(0, state.range.end - MIN_RANGE),
+                                      ),
+                                      end: state.range.end,
+                                  },
+                              }
+                            : {
+                                  range: {
+                                      start: state.range.start,
+                                      end: clamp(
+                                          state.range.end + delta,
+                                          Math.min(state.duration, state.range.start + MIN_RANGE),
+                                          state.duration,
+                                      ),
+                                  },
+                              },
+                    );
                     return;
                 }
 

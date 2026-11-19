@@ -27,14 +27,17 @@ export interface TimelineProps {
     /** Frame rate used for frame numbering; falls back to 25 inside. */
     fps: number;
     /** Currently keyboard-selected handle; `null` when none is selected. */
-    activeHandle: "start" | "end" | "playhead" | null;
-    onActiveHandleChange: (handle: "start" | "end" | "playhead" | null) => void;
+    activeHandle: "start" | "end" | null;
+    onActiveHandleChange: (handle: "start" | "end" | null) => void;
     /** Apply current settings to newly opened videos. */
     keepSettings: boolean;
     onKeepSettingsChange: (value: boolean) => void;
     /** Reopen the last processed video on startup. */
     rememberVideo: boolean;
     onRememberVideoChange: (value: boolean) => void;
+    /** Locked crop aspect; `null` = free selection. */
+    cropAspect: number | null;
+    onCropAspectChange: (value: number | null) => void;
     /** Whether there is anything to clear (crop or a trimmed range). */
     hasSelections: boolean;
     onClearSelections: () => void;
@@ -84,6 +87,8 @@ export class Timeline extends Component<TimelineProps> {
                         onKeepSettingsChange={this.props.onKeepSettingsChange}
                         rememberVideo={this.props.rememberVideo}
                         onRememberVideoChange={this.props.onRememberVideoChange}
+                        cropAspect={this.props.cropAspect}
+                        onCropAspectChange={this.props.onCropAspectChange}
                         hasSelections={this.props.hasSelections}
                         onClearSelections={this.props.onClearSelections}
                         onOpenFile={this.props.onOpenFile}                        exporting={this.props.exporting}

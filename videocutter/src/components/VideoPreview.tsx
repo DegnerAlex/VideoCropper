@@ -67,6 +67,8 @@ export interface VideoPreviewProps {
     placeholder?: string;
     frameSize: FrameSize;
     crop: CropRect | null;
+    /** Locked crop aspect (w/h in frame pixels); `null` = free. */
+    cropAspect: number | null;
     onCropChange: (crop: CropRect | null) => void;
     onFrameLoad: (size: { width: number; height: number }) => void;
     /** Opens the file chooser (double click on the canvas). */
@@ -481,6 +483,60 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
             this.props.crop && this.isInsideCrop(point) ? "move" : "crosshair";
     }
 
+    /** Aspect-locked resize with the opposite corner kept in place. */
+    private resizeAspectAnchored(
+        origin: CropRect,
+        handle: Handle,
+        point: Point,
+        aspect: number,
+    ): CropRect {
+        const videoRect = this.videoRect;
+        if (!videoRect) {
+            return origin;
+        }
+
+        const originLeft = origin.x * videoRect.w;
+        const originTop = origin.y * videoRect.h;
+        const originRight = originLeft + origin.width * videoRect.w;
+        const originBottom = originTop + origin.height * videoRect.h;
+
+        const fixedX = handle.includes("w") ? originRight : originLeft;
+        const fixedY = handle.includes("n") ? originBottom : originTop;
+
+        let w = Math.abs(point.x * videoRect.w - fixedX);
+        let h = Math.abs(point.y * videoRect.h - fixedY);
+
+        if (w / Math.max(1, h) > aspect) {
+            h = w / aspect;
+        } else {
+            w = h * aspect;
+        }
+
+        const maxW = handle.includes("w") ? fixedX : videoRect.w - fixedX;
+        const maxH = handle.includes("n") ? fixedY : videoRect.h - fixedY;
+
+        w = clamp(w, MIN_SIZE * videoRect.w, Math.max(MIN_SIZE * videoRect.w, maxW));
+        h = clamp(h, MIN_SIZE * videoRect.h, Math.max(MIN_SIZE * videoRect.h, maxH));
+
+        if (w / Math.max(1, h) > aspect) {
+            h = Math.min(w / aspect, maxH);
+            w = Math.min(h * aspect, maxW);
+        } else {
+            w = Math.min(h * aspect, maxW);
+            h = Math.min(w / aspect, maxH);
+        }
+
+        const left = handle.includes("w") ? fixedX - w : fixedX;
+        const top = handle.includes("n") ? fixedY - h : fixedY;
+
+        return roundRectValues({
+            x: clamp(left / videoRect.w, 0, 1),
+            y: clamp(top / videoRect.h, 0, 1),
+            width: clamp(w / videoRect.w, 0, 1),
+            height: clamp(h / videoRect.h, 0, 1),
+        });
+    }
+
     /** Shift-resize: keeps the crop proportions and grows symmetrically in
      * all directions from the center of the selection, whatever handle is
      * dragged. */
@@ -579,6 +635,7 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
         const videoRect = this.videoRect;
 
         if (drag.kind === "draw") {
+            if (!videoRect) return;
             if (!drag.moved) {
                 const thresholdX = DRAG_THRESHOLD / Math.max(1, videoRect?.w ?? 1);
                 const thresholdY = DRAG_THRESHOLD / Math.max(1, videoRect?.h ?? 1);
@@ -593,11 +650,38 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
                 drag.moved = true;
             }
 
+            // Pixel-space rect from the anchor toward the pointer.
+            const anchorX = drag.anchor.x * videoRect.w;
+            const anchorY = drag.anchor.y * videoRect.h;
+            let w = Math.abs(point.x * videoRect.w - anchorX);
+            let h = Math.abs(point.y * videoRect.h - anchorY);
+            const signX = point.x >= drag.anchor.x ? 1 : -1;
+            const signY = point.y >= drag.anchor.y ? 1 : -1;
+
+            const aspect = this.props.cropAspect;
+            if (aspect) {
+                if (w / Math.max(1, h) > aspect) {
+                    h = w / aspect;
+                } else {
+                    w = h * aspect;
+                }
+                w = clamp(w, 8, videoRect.w);
+                h = clamp(h, 8, videoRect.h);
+                if (w / h > aspect) {
+                    h = w / aspect;
+                } else {
+                    w = h * aspect;
+                }
+            }
+
+            const left = clamp(signX > 0 ? anchorX : anchorX - w, 0, videoRect.w - w);
+            const top = clamp(signY > 0 ? anchorY : anchorY - h, 0, videoRect.h - h);
+
             const next = roundRectValues({
-                x: Math.min(drag.anchor.x, point.x),
-                y: Math.min(drag.anchor.y, point.y),
-                width: Math.abs(point.x - drag.anchor.x),
-                height: Math.abs(point.y - drag.anchor.y),
+                x: left / videoRect.w,
+                y: top / videoRect.h,
+                width: w / videoRect.w,
+                height: h / videoRect.h,
             });
             this.latestCrop = next;
             this.props.onCropChange(next);
@@ -632,9 +716,17 @@ export class VideoPreview extends Component<VideoPreviewProps, VideoPreviewState
             return;
         }
 
-        const next = event.shiftKey
-            ? this.resizeProportional(drag.origin, drag.handle, point)
-            : roundRectValues(resizeRect(drag.origin, drag.handle, point));
+        const aspect = this.props.cropAspect;
+        const fromCenter = event.shiftKey || (aspect !== null && drag.handle.length === 1);
+
+        let next: CropRect;
+        if (fromCenter) {
+            next = this.resizeProportional(drag.origin, drag.handle, point);
+        } else if (aspect !== null) {
+            next = this.resizeAspectAnchored(drag.origin, drag.handle, point, aspect);
+        } else {
+            next = roundRectValues(resizeRect(drag.origin, drag.handle, point));
+        }
         this.latestCrop = next;
         this.props.onCropChange(next);
     };
