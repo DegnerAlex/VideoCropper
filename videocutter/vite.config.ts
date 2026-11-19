@@ -17,10 +17,6 @@ import react from "@vitejs/plugin-react";
 
 const host = 'localhost';
 
-// Global SCSS API (variables, mixins, functions). Vite injects it into every
-// .scss file, so stylesheets do not need to import it manually.
-const scssGlobals = new URL('./src/styles/index', import.meta.url).pathname;
-
 // https://vite.dev/config/
 export default defineConfig({
     base: './',
@@ -37,8 +33,6 @@ export default defineConfig({
     css: {
         preprocessorOptions: {
             scss: {
-                // Use the modern Sass module system with globally exposed variables.
-                additionalData: `@use "${scssGlobals}" as *;\n`,
                 // Bulma 1.0.4 still uses the legacy Sass if() syntax.
                 silenceDeprecations: ['if-function'],
             },

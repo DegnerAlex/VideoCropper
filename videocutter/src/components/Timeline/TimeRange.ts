@@ -12,21 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Shared SCSS variables. Injected into every .scss file via Vite's
-// `css.preprocessorOptions.scss.additionalData` (see vite.config.ts).
-
-// Brand palette. Also used to configure Bulma in `styles/main.scss`.
-$brand-primary: #396cd8;
-$brand-link: #646cff;
-
-// Typography
-$font-family-base: Inter, Avenir, Helvetica, Arial, sans-serif;
-
-// Logo accents
-$color-logo-vite: #747bff;
-$color-logo-react: #61dafb;
-$color-logo-tauri: #24c8db;
-
-// Shape
-$radius-base: 8px;
-$radius-large: 12px;
+/** Playback range in seconds. */
+export interface TimeRange {
+    start: number;
+    end: number;
+}

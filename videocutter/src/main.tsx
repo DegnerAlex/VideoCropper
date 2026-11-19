@@ -14,8 +14,7 @@
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-// Global styles (Bulma) first, so app styles can override them.
-import "./styles/main.scss";
+// App.scss also compiles Bulma (configured with the project palette).
 import App from "./App";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(

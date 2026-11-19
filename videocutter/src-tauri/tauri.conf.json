@@ -11,18 +11,26 @@
   "app": {
     "windows": [
       {
-        "title": "videocutter",
-        "width": 800,
-        "height": 600
+        "title": "Video Cutter",
+        "width": 1280,
+        "height": 860,
+        "minWidth": 960,
+        "minHeight": 640,
+        "dragDropEnabled": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": []
+      }
     }
   },
   "bundle": {
     "active": true,
     "targets": "all",
+    "externalBin": ["binaries/ffmpeg", "binaries/ffprobe"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

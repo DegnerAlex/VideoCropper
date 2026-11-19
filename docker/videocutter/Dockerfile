@@ -70,3 +70,11 @@ RUN apt-get install -y \
 RUN curl -sL https://deb.nodesource.com/setup_22.x | bash - && \
         apt-get install -y nodejs && \
         npm install --global --allow-scripts=pnpm pnpm
+
+# FFmpeg/ffprobe for local development. Release builds use the bundled
+# sidecar binaries prepared by `scripts/prepare-sidecars.sh`.
+# The preview player renders frames extracted by ffmpeg, so no browser/GStreamer
+# codec packages are required.
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ffmpeg && \
+    rm -rf /var/lib/apt/lists/*
