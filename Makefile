@@ -12,7 +12,10 @@ APPIMAGE      := videocropper/src-tauri/target/release/bundle/appimage/$(APP_NAM
 
 GH            ?= gh
 
-.PHONY: all appimage release upload clean clean-docker clean-all help
+# Shorthand: every build command runs inside the videocropper container.
+RUN := docker compose run --rm --no-deps -T videocropper
+
+.PHONY: all appimage release upload clean clean-docker help
 
 help:
 	@echo "Targets:"
@@ -20,9 +23,8 @@ help:
 	@echo "  appimage   - build the Linux AppImage (sidecars + frontend + tauri build)"
 	@echo "  release    - create a GitHub release for v$(VERSION) with gh"
 	@echo "  upload     - upload the built AppImage to the release with gh"
-	@echo "  clean      - remove build artifacts and temp files"
-	@echo "  clean-docker - remove containers, networks, project images and volumes"
-	@echo "  clean-all    - full wipe: clean-docker + assets (sidecars, gen) + docker prune"
+	@echo "  clean        - full wipe: build artifacts + docker resources + prune"
+	@echo "  clean-docker - docker resources only (containers, images, volumes)"
 
 # Full release pipeline: build the AppImage, create the GitHub release for the
 # current version (unless it already exists) and upload the artifact to it.
@@ -36,7 +38,7 @@ all: appimage
 # then the frontend build and the Tauri bundle). APPIMAGE_EXTRACT_AND_RUN=1 is
 # already set in the compose service, so FUSE is not required.
 appimage:
-	docker compose run --rm --no-deps -T videocropper bash -c "\
+	$(RUN) bash -c "\
 	    pnpm install && \
 	    pnpm run build && \
 	    pnpm run sidecars && \
@@ -54,31 +56,32 @@ release:
 upload: 
 	$(GH) release upload "$(TAG)" "$(APPIMAGE)" --clobber
 
-# Remove build artifacts, temp files and test directories.
+# Full wipe: build artifacts, temp files and every docker resource of this
+# project (containers, networks, images, volumes — including the
+# cargo-registry build cache), then a docker system prune. Affects the whole
+# docker host, not just this project.
 clean:
 	rm -rf videocropper/dist
 	rm -rf videocropper/src-tauri/target
 	rm -rf videocropper/.tmp-test
 	rm -rf videocropper/node_modules/.vite
 	find . -name "*.tmp" -delete 2>/dev/null || true
-
-# Docker cleanup: containers, networks, project images and volumes
-# (including the cargo-registry build cache — the next build will
-# re-download dependencies).
-clean-docker: clean
 	@echo ">> removing containers, networks and volumes"
 	docker compose down --remove-orphans --volumes 2>/dev/null || true
 	docker rm -f $$(docker ps -aq --filter "name=videocropper") 2>/dev/null || true
 	docker volume rm $$(docker volume ls -q --filter "name=videocropper") 2>/dev/null || true
 	@echo ">> removing project images"
 	docker rmi -f $$(docker images -q "videocropper-*") 2>/dev/null || true
-
-# Full wipe: everything from clean-docker plus ALL remaining docker
-# resources of the builder and every regenerable asset — tauri codegen,
-# everything is rebuilt by `make appimage`). Affects the whole docker host,
-# not just this project.
-clean-all: clean clean-docker
 	@echo ">> full docker system prune (all unused images + build cache)"
 	docker system prune -af 2>/dev/null || true
 	@echo ">> disk usage after cleanup:"
 	@docker system df
+
+# Docker resources only (artifacts on disk are kept).
+clean-docker:
+	@echo ">> removing containers, networks and volumes"
+	docker compose down --remove-orphans --volumes 2>/dev/null || true
+	docker rm -f $$(docker ps -aq --filter "name=videocropper") 2>/dev/null || true
+	docker volume rm $$(docker volume ls -q --filter "name=videocropper") 2>/dev/null || true
+	@echo ">> removing project images"
+	docker rmi -f $$(docker images -q "videocropper-*") 2>/dev/null || true
