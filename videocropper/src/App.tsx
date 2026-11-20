@@ -18,7 +18,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { Box, Button, Heading, Notification, Section } from "react-bulma-components";
-import { FiX } from "react-icons/fi";
+import { FiFolder, FiX } from "react-icons/fi";
 import { Timeline } from "./components/Timeline";
 import type { TimeRange } from "./components/Timeline";
 import { FileDropZone } from "./components/FileDropZone";
@@ -859,11 +859,12 @@ class App extends Component<Record<string, never>, AppState> {
                                 frame by frame with FFmpeg — no system player codecs required.
                             </p>
                             <Button
-                                color="primary"
+                                className="choose-file-button"
                                 size="medium"
                                 onClick={() => void this.chooseFile()}
                             >
-                                Choose file
+                                <FiFolder />
+                                <span>Choose file</span>
                             </Button>
                         </Box>
                     </Section>
